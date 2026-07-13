@@ -3,36 +3,68 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>AMQ Visualizer (modern)</title>
+    <title>AMQ Flow Visualizer (modern)</title>
     <style>
       :root { color-scheme: light dark; }
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
-      .row { display: flex; gap: 16px; flex-wrap: wrap; }
-      .card { border: 1px solid #ddd; border-radius: 12px; padding: 0; min-width: 320px; flex: 1; overflow: hidden; }
-      .cardInner { padding: 14px 16px 16px; }
-      .banner { padding: 10px 16px; color: white; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
-      .badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.28); }
       .muted { opacity: 0.75; }
       code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-      table { width: 100%; border-collapse: collapse; }
-      td, th { border-top: 1px solid #ddd; padding: 8px; vertical-align: top; }
-      .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid #ddd; }
-      .error { color: #b91c1c; }
+
+      .grid { display: grid; grid-template-columns: 1fr 80px 1fr 80px 1fr; gap: 12px; align-items: stretch; margin-top: 16px; }
+      .node { border: 1px solid #ddd; border-radius: 14px; padding: 14px 16px; min-height: 220px; }
+      .nodeTitle { display: flex; justify-content: space-between; align-items: baseline; }
+      .title { font-weight: 800; font-size: 18px; }
+      .sub { font-size: 12px; opacity: 0.8; }
+      .big { font-size: 42px; font-weight: 900; letter-spacing: -0.02em; margin-top: 10px; }
+      .kpis { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; }
+      .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; border: 1px solid #ddd; font-size: 12px; }
+      .err { color: #b91c1c; margin-top: 10px; font-size: 13px; white-space: pre-wrap; }
+
+      .arrowWrap { display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 14px; border: 1px dashed #ddd; }
+      .arrow { font-size: 28px; font-weight: 900; opacity: 0.9; }
+      .rate { margin-top: 6px; font-size: 12px; opacity: 0.75; }
+      .pulse { width: 12px; height: 12px; border-radius: 50%; margin-top: 10px; background: #22c55e; box-shadow: 0 0 0 0 rgba(34,197,94, 0.8); }
+      .pulse.off { background: #94a3b8; box-shadow: none; }
+      @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(34,197,94, 0.7);} 70% { box-shadow: 0 0 0 16px rgba(34,197,94, 0);} 100% { box-shadow: 0 0 0 0 rgba(34,197,94, 0);} }
+      .pulse.on { animation: ping 1.5s infinite; }
     </style>
   </head>
   <body>
-    <h2>AMQ Visualizer <span class="muted">(modern)</span></h2>
+    <h2>AMQ Flow Visualizer <span class="muted">(modern)</span></h2>
     <div class="muted">
-      This UI polls <code>/api/snapshots</code> (server-side proxy) to show live counters.
+      This UI polls <code>/api/flow</code> to show message movement from <b>producer</b> to <b>broker</b> to <b>consumer</b>.
+      Broker queue metrics are read via <code>Jolokia</code>.
     </div>
 
     <div id="status" class="muted" style="margin-top: 12px;"></div>
 
-    <div id="cards" class="row" style="margin-top: 16px;"></div>
+    <div class="grid">
+      <div class="node" id="producerNode"></div>
+      <div class="arrowWrap" id="p2b">
+        <div class="arrow">→</div>
+        <div class="rate" id="rateP2B">- msg/s</div>
+        <div class="pulse off" id="pulseP2B"></div>
+      </div>
+      <div class="node" id="brokerNode"></div>
+      <div class="arrowWrap" id="b2c">
+        <div class="arrow">→</div>
+        <div class="rate" id="rateB2C">- msg/s</div>
+        <div class="pulse off" id="pulseB2C"></div>
+      </div>
+      <div class="node" id="consumerNode"></div>
+    </div>
 
     <script>
       const statusEl = document.getElementById("status");
-      const cardsEl = document.getElementById("cards");
+      const producerNode = document.getElementById("producerNode");
+      const brokerNode = document.getElementById("brokerNode");
+      const consumerNode = document.getElementById("consumerNode");
+      const rateP2B = document.getElementById("rateP2B");
+      const rateB2C = document.getElementById("rateB2C");
+      const pulseP2B = document.getElementById("pulseP2B");
+      const pulseB2C = document.getElementById("pulseB2C");
+
+      let prev = null;
 
       function el(tag, attrs = {}, children = []) {
         const n = document.createElement(tag);
@@ -51,67 +83,111 @@
         return await r.json();
       }
 
-      function renderCard(entry) {
-        const url = entry.url || "";
-        const snap = entry.snapshot || null;
-        const err = entry.ok ? null : (entry.error || "error");
-        const isDemo = url === "DEMO_DATA" || url === "" || url == null;
+      function fmtNum(x) {
+        if (x == null || Number.isNaN(Number(x))) return "-";
+        const n = Number(x);
+        return n >= 1_000_000 ? (n/1_000_000).toFixed(2) + "M" :
+               n >= 1_000 ? (n/1_000).toFixed(1) + "k" :
+               String(n);
+      }
 
-        const banner = el("div", { class: "banner" }, [
-          el("div", { text: entry.label || entry.id || "cluster" }),
-          el("div", { class: "badge", text: err ? "ERROR" : (isDemo ? "DEMO_DATA" : "LIVE") }),
-        ]);
-        banner.style.background = entry.color || "#334155";
+      function computeRate(nowVal, prevVal, dtSeconds) {
+        if (nowVal == null || prevVal == null || dtSeconds <= 0) return null;
+        return (Number(nowVal) - Number(prevVal)) / dtSeconds;
+      }
 
-        const header = el("div", { class: "cardInner" }, [
-          el("div", { class: "muted", text: "Snapshot URL" }),
-          el("div", {}, [el("code", { text: url || "-" })]),
-        ]);
+      function setPulse(elm, on) {
+        elm.classList.remove("on", "off");
+        elm.classList.add(on ? "on" : "off");
+      }
 
-        const stats = el("div", { style: "margin-top: 10px;" }, [
-          el("div", { class: "pill", text: `received: ${snap ? snap.received : "-"}` }),
-          document.createTextNode(" "),
-          el("div", { class: "pill", text: `duplicates: ${snap ? snap.duplicates : "-"}` }),
-        ]);
-
-        const table = el("table", { style: "margin-top: 12px;" });
-        const thead = el("thead");
-        thead.appendChild(el("tr", {}, [
-          el("th", { text: "receivedAt" }),
-          el("th", { text: "eventId" }),
-          el("th", { text: "body" }),
+      function renderNode(target, title, subtitle, big, pills, err) {
+        target.textContent = "";
+        target.appendChild(el("div", { class: "nodeTitle" }, [
+          el("div", {}, [
+            el("div", { class: "title", text: title }),
+            el("div", { class: "sub", text: subtitle }),
+          ]),
         ]));
-        table.appendChild(thead);
-        const tbody = el("tbody");
-        const last = (snap && snap.last) ? snap.last : [];
-        for (const item of last) {
-          tbody.appendChild(el("tr", {}, [
-            el("td", {}, [el("code", { text: item.receivedAt || "" })]),
-            el("td", {}, [el("code", { text: item.eventId || "" })]),
-            el("td", {}, [el("code", { text: (item.body || "").slice(0, 220) })]),
-          ]));
-        }
-        table.appendChild(tbody);
-
-        const errLine = err ? el("div", { class: "error", style: "margin-top: 10px;", text: String(err) }) : null;
-
-        header.appendChild(stats);
-        header.appendChild(table);
-        if (errLine) header.appendChild(errLine);
-        return el("div", { class: "card" }, [banner, header]);
+        target.appendChild(el("div", { class: "big", text: big }));
+        const kpis = el("div", { class: "kpis" });
+        for (const p of (pills || [])) kpis.appendChild(el("div", { class: "pill", text: p }));
+        target.appendChild(kpis);
+        if (err) target.appendChild(el("div", { class: "err", text: err }));
       }
 
       async function tick() {
-        cardsEl.textContent = "";
-        const entries = await fetchJson("/api/snapshots");
-        if (!entries || entries.length === 0) {
-          statusEl.textContent = "No clusters configured. Set DEMO_AMQ1_SNAPSHOT_URL / DEMO_AMQ2_SNAPSHOT_URL / DEMO_AMQ3_SNAPSHOT_URL (or DEMO_SNAPSHOT_URLS).";
-          return;
-        }
-        statusEl.textContent = `Polling ${entries.length} cluster(s) every 2s.`;
-        for (const e of entries) {
-          cardsEl.appendChild(renderCard(e));
-        }
+        const now = await fetchJson("/api/flow");
+        const fetchedAt = now.fetchedAt || new Date().toISOString();
+        const st = now.status || {};
+
+        statusEl.textContent = `Polling every 2s. queue=${now.queue || "-"} fetchedAt=${fetchedAt}`;
+
+        const prod = now.producer || {};
+        const cons = now.consumer || {};
+        const broker = now.broker || {};
+        const qm = (broker && broker.metrics) ? broker.metrics : {};
+
+        const sent = prod.sent;
+        const recv = cons.received;
+        const msgCount = qm.MessageCount;
+        const added = qm.MessagesAdded;
+        const acked = qm.MessagesAcknowledged;
+        const consumers = qm.ConsumerCount;
+        const delivering = qm.DeliveringCount;
+
+        const dt = prev ? (Date.parse(fetchedAt) - Date.parse(prev.fetchedAt || fetchedAt)) / 1000 : null;
+        const rateSent = (prev && dt) ? computeRate(sent, prev.producer?.sent, dt) : null;
+        const rateAck = (prev && dt) ? computeRate(acked, prev.broker?.metrics?.MessagesAcknowledged, dt) : null;
+
+        rateP2B.textContent = `${rateSent == null ? "-" : rateSent.toFixed(1)} msg/s`;
+        rateB2C.textContent = `${rateAck == null ? "-" : rateAck.toFixed(1)} msg/s`;
+        setPulse(pulseP2B, rateSent != null && rateSent > 0.1);
+        setPulse(pulseB2C, rateAck != null && rateAck > 0.1);
+
+        renderNode(
+          producerNode,
+          "Producer",
+          st.producerOk ? "OK" : "ERROR",
+          fmtNum(sent),
+          [
+            `rate: ${rateSent == null ? "-" : rateSent.toFixed(1)} msg/s`,
+            `endpoint: /api/snapshot`,
+          ],
+          st.producerOk ? null : (st.producerError || "producer error")
+        );
+
+        renderNode(
+          brokerNode,
+          "AMQ Broker",
+          "Jolokia queue metrics",
+          fmtNum(msgCount),
+          [
+            `queue depth: ${fmtNum(msgCount)}`,
+            `added: ${fmtNum(added)}`,
+            `acked: ${fmtNum(acked)}`,
+            `consumers: ${fmtNum(consumers)}`,
+            `delivering: ${fmtNum(delivering)}`,
+          ],
+          st.brokerOk ? null : (st.brokerError || "broker error")
+        );
+
+        renderNode(
+          consumerNode,
+          "Consumer",
+          st.consumerOk ? "OK" : "ERROR",
+          fmtNum(recv),
+          [
+            `endpoint: /api/snapshot`,
+          ],
+          st.consumerOk ? null : (st.consumerError || "consumer error")
+        );
+
+        prev = {
+          fetchedAt,
+          producer: { sent },
+          broker: { metrics: { MessagesAcknowledged: acked } }
+        };
       }
 
       (async () => {

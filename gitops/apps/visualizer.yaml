@@ -41,22 +41,18 @@ spec:
           image: ' '
           imagePullPolicy: Always
           env:
-            - name: DEMO_AMQ1_LABEL
-              value: AMQ1 (in-cluster)
-            - name: DEMO_AMQ1_COLOR
-              value: "#2563eb"
-            - name: DEMO_AMQ1_SNAPSHOT_URL
+            - name: DEMO_FLOW_PRODUCER_SNAPSHOT_URL
+              value: http://modern-queue-producer:8080/api/snapshot
+            - name: DEMO_FLOW_CONSUMER_SNAPSHOT_URL
               value: http://modern-event-consumer:8081/api/snapshot
-
-            - name: DEMO_AMQ2_LABEL
-              value: AMQ2 (demo)
-            - name: DEMO_AMQ2_COLOR
-              value: "#16a34a"
-
-            - name: DEMO_AMQ3_LABEL
-              value: AMQ3 (demo)
-            - name: DEMO_AMQ3_COLOR
-              value: "#f97316"
+            - name: DEMO_FLOW_BROKER_JOLOKIA_URL
+              value: http://amq-broker-wconsj-0-svc:8161/console/jolokia
+            - name: DEMO_FLOW_BROKER_USERNAME
+              value: admin
+            - name: DEMO_FLOW_BROKER_PASSWORD
+              value: admin
+            - name: DEMO_FLOW_QUEUE
+              value: demo.events
           ports:
             - containerPort: 8082
               name: http

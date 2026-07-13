@@ -10,6 +10,7 @@ import org.apache.camel.ProducerTemplate;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.demo.legacy.producer.model.DemoEvent;
+import com.demo.legacy.producer.state.ProducerState;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @ApplicationScoped
@@ -24,6 +25,9 @@ public class ProducerService {
   @Inject
   ObjectMapper mapper;
 
+  @Inject
+  ProducerState state;
+
   public DemoEvent sendOne(String payload) throws Exception {
     DemoEvent event = new DemoEvent(
         UUID.randomUUID().toString(),
@@ -33,6 +37,7 @@ public class ProducerService {
     );
     String json = mapper.writeValueAsString(event);
     template.sendBody("direct:send", json);
+    state.recordSend(event.eventId, json);
     return event;
   }
 }
