@@ -1,0 +1,11 @@
+apiVersion: noobaa.io/v1alpha1
+kind: NooBaa
+metadata:
+  name: noobaa
+  namespace: openshift-storage
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  # Use the in-cluster Postgres provided by the operator.
+  dbType: postgres
+

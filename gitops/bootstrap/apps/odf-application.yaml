@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-camel-mta-odf
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/panchoraposo/demo-camel-mta.git
+    targetRevision: main
+    path: gitops/platform/odf/mcg
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-storage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+

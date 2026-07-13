@@ -1,0 +1,16 @@
+apiVersion: noobaa.io/v1alpha1
+kind: BackingStore
+metadata:
+  name: noobaa-pv-backingstore
+  namespace: openshift-storage
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  type: pv-pool
+  pvPool:
+    numVolumes: 1
+    storageClass: gp3-csi
+    resources:
+      requests:
+        storage: 50Gi
+
