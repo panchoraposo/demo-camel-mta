@@ -10,8 +10,10 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Named;
 
 @ApplicationScoped
+@Named("consumerState")
 public class ConsumerState {
 
   private final AtomicLong received = new AtomicLong(0);
