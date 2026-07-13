@@ -29,6 +29,7 @@
     <artemis.version>2.39.0</artemis.version>
 
     <surefire-plugin.version>3.5.4</surefire-plugin.version>
+    <compiler-plugin.version>3.13.0</compiler-plugin.version>
     <skipITs>true</skipITs>
   </properties>
 
@@ -95,6 +96,13 @@
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${surefire-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${compiler-plugin.version}</version>
+          <configuration>
+            <release>${maven.compiler.release}</release>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
