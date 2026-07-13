@@ -13,10 +13,6 @@
 
   <artifactId>kaoto-consumer</artifactId>
 
-  <properties>
-    <quarkus.package.type>fast-jar</quarkus.package.type>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>io.quarkus</groupId>
