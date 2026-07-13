@@ -6,6 +6,7 @@ resources:
   - amq-broker/subscription.yaml
   - logging/loki-subscription.yaml
   - logging/cluster-logging-subscription.yaml
+  - observability/subscription.yaml
   - devspaces/subscription.yaml
   - odf/subscription.yaml
 

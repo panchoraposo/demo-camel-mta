@@ -17,6 +17,13 @@ commands:
       group:
         kind: build
         isDefault: true
+  - id: dev-kaoto-consumer
+    exec:
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: mvn -f modern/pom.xml -pl apps/kaoto-consumer quarkus:dev
+      group:
+        kind: run
   - id: dev-consumer
     exec:
       component: tools
