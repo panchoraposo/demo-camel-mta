@@ -44,7 +44,7 @@ public class VisualizerClustersConfig {
 
   public record Cluster(String id, String label, String color, String snapshotUrl) {
     public boolean hasSnapshotUrl() {
-      return snapshotUrl != null && !snapshotUrl.isBlank();
+      return !isBlank(snapshotUrl);
     }
   }
 
@@ -52,13 +52,13 @@ public class VisualizerClustersConfig {
     boolean anyExplicit = !isBlank(amq1SnapshotUrl) || !isBlank(amq2SnapshotUrl) || !isBlank(amq3SnapshotUrl);
     if (anyExplicit) {
       return List.of(
-          new Cluster("amq1", amq1Label, amq1Color, amq1SnapshotUrl),
-          new Cluster("amq2", amq2Label, amq2Color, amq2SnapshotUrl),
-          new Cluster("amq3", amq3Label, amq3Color, amq3SnapshotUrl));
+          new Cluster("amq1", amq1Label, amq1Color, normalize(amq1SnapshotUrl)),
+          new Cluster("amq2", amq2Label, amq2Color, normalize(amq2SnapshotUrl)),
+          new Cluster("amq3", amq3Label, amq3Color, normalize(amq3SnapshotUrl)));
     }
 
     // Fallback: map legacy list onto AMQ1..N
-    List<String> urls = parseLegacyList(legacySnapshotUrls);
+    List<String> urls = parseLegacyList(normalize(legacySnapshotUrls));
     List<Cluster> out = new ArrayList<>();
     if (urls.size() > 0)
       out.add(new Cluster("amq1", amq1Label, amq1Color, urls.get(0)));
@@ -70,7 +70,11 @@ public class VisualizerClustersConfig {
   }
 
   private static boolean isBlank(String s) {
-    return s == null || s.isBlank();
+    return s == null || s.isBlank() || "__none__".equals(s);
+  }
+
+  private static String normalize(String s) {
+    return isBlank(s) ? "" : s;
   }
 
   private static List<String> parseLegacyList(String raw) {
