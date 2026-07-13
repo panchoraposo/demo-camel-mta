@@ -4,9 +4,7 @@ USER 0
 RUN microdnf install -y maven && microdnf clean all
 
 WORKDIR /workspace
-COPY modern/pom.xml modern/pom.xml
-COPY modern/apps/event-consumer/pom.xml modern/apps/event-consumer/pom.xml
-COPY modern/apps/event-consumer/src modern/apps/event-consumer/src
+COPY modern modern
 
 RUN mvn -f modern/pom.xml -pl apps/event-consumer -am package -DskipTests
 
