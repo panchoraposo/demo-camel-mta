@@ -1,0 +1,12 @@
+apiVersion: ocs.openshift.io/v1
+kind: StorageCluster
+metadata:
+  name: ocs-storagecluster
+  namespace: openshift-storage
+spec:
+  # This is a template only.
+  # You MUST adapt it to your environment (devices, nodes, storage classes).
+  manageNodes: false
+  monDataDirHostPath: /var/lib/rook
+  storageDeviceSets: []
+

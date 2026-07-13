@@ -1,0 +1,15 @@
+apiVersion: logging.openshift.io/v1
+kind: ClusterLogging
+metadata:
+  name: instance
+  namespace: openshift-logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "40"
+spec:
+  collection:
+    type: vector
+  logStore:
+    type: lokistack
+    lokistack:
+      name: loki
+

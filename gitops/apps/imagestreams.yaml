@@ -1,0 +1,15 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: modern-queue-producer
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: modern-event-consumer
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: modern-visualizer
+

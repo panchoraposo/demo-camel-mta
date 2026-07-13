@@ -1,0 +1,25 @@
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: amq-broker
+  namespace: demo-camel-mta
+spec:
+  adminUser: admin
+  adminPassword: admin
+  deploymentPlan:
+    size: 1
+    persistenceEnabled: false
+    requireLogin: true
+  console:
+    expose: true
+  acceptors:
+    - name: core
+      port: 61616
+      protocols: CORE
+      expose: false
+  addressSettings:
+    addressSetting:
+      - match: "#"
+        autoCreateAddresses: true
+        autoCreateQueues: true
+

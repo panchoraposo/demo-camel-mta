@@ -1,0 +1,72 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: modern-visualizer
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/panchoraposo/demo-camel-mta.git
+      ref: main
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: modern/apps/visualizer/Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: modern-visualizer:latest
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modern-visualizer
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"modern-visualizer:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: modern-visualizer
+  template:
+    metadata:
+      labels:
+        app: modern-visualizer
+    spec:
+      containers:
+        - name: app
+          image: ' '
+          imagePullPolicy: Always
+          env:
+            - name: DEMO_SNAPSHOT_URLS
+              value: http://modern-event-consumer:8081/api/snapshot
+          ports:
+            - containerPort: 8082
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modern-visualizer
+spec:
+  selector:
+    app: modern-visualizer
+  ports:
+    - name: http
+      port: 8082
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: modern-visualizer
+spec:
+  to:
+    kind: Service
+    name: modern-visualizer
+  port:
+    targetPort: http
+

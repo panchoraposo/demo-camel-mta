@@ -1,0 +1,82 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: modern-queue-producer
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/panchoraposo/demo-camel-mta.git
+      ref: main
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: modern/apps/queue-producer/Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: modern-queue-producer:latest
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modern-queue-producer
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"modern-queue-producer:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: modern-queue-producer
+  template:
+    metadata:
+      labels:
+        app: modern-queue-producer
+    spec:
+      containers:
+        - name: app
+          image: ' '
+          imagePullPolicy: Always
+          env:
+            - name: DEMO_BROKER_URL
+              value: tcp://amq-broker-hdls-svc:61616
+            - name: DEMO_BROKER_USERNAME
+              value: admin
+            - name: DEMO_BROKER_PASSWORD
+              value: admin
+            - name: DEMO_BROKER_QUEUE
+              value: demo.events
+            - name: DEMO_TIMER_ENABLED
+              value: "true"
+            - name: DEMO_PERIOD_MS
+              value: "1500"
+          ports:
+            - containerPort: 8080
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modern-queue-producer
+spec:
+  selector:
+    app: modern-queue-producer
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: modern-queue-producer
+spec:
+  to:
+    kind: Service
+    name: modern-queue-producer
+  port:
+    targetPort: http
+

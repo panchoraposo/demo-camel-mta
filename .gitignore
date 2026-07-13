@@ -1,0 +1,32 @@
+.DS_Store
+
+# Maven
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
+
+# Quarkus
+**/.quarkus/
+**/.quarkus-generated/
+**/.quarkus-dev/
+**/.quarkus-cache/
+
+# IDEs
+.idea/
+*.iml
+*.swp
+*.swo
+.vscode/
+
+# Node / UI tooling (if added later)
+**/node_modules/
+**/dist/
+**/.parcel-cache/
+**/.vite/
+
+# Local env files
+.env
+.env.*
+
+# MTA outputs
+**/mta-output/
+**/mta-reports/

@@ -1,0 +1,34 @@
+schemaVersion: 2.2.2
+metadata:
+  name: demo-camel-mta-modern
+components:
+  - name: tools
+    container:
+      image: registry.access.redhat.com/ubi9/openjdk-17:latest
+      memoryLimit: 2Gi
+      mountSources: true
+      command: ["sleep", "infinity"]
+commands:
+  - id: build
+    exec:
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: mvn -f modern/pom.xml -DskipTests package
+      group:
+        kind: build
+        isDefault: true
+  - id: dev-consumer
+    exec:
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: mvn -f modern/pom.xml -pl apps/event-consumer quarkus:dev
+      group:
+        kind: run
+  - id: dev-producer
+    exec:
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: mvn -f modern/pom.xml -pl apps/queue-producer quarkus:dev
+      group:
+        kind: run
+
