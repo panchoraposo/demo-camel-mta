@@ -12,9 +12,8 @@
       uri: "jms:queue:{{demo.broker.queue}}"
       steps:
         # Persist message in memory for /api/snapshot
-        - bean:
-            ref: consumerState
-            method: onMessage
+        - to:
+            uri: "bean:consumerState?method=onMessage"
 
         # Optional logging demo: you can modify this in Kaoto.
         - choice:
