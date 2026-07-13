@@ -69,4 +69,7 @@ spec:
     name: modern-visualizer
   port:
     targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
 
