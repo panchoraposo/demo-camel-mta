@@ -41,8 +41,26 @@ spec:
           image: ' '
           imagePullPolicy: Always
           env:
-            - name: DEMO_SNAPSHOT_URLS
+            - name: DEMO_AMQ1_LABEL
+              value: AMQ1 (in-cluster)
+            - name: DEMO_AMQ1_COLOR
+              value: "#2563eb"
+            - name: DEMO_AMQ1_SNAPSHOT_URL
               value: http://modern-event-consumer:8081/api/snapshot
+
+            - name: DEMO_AMQ2_LABEL
+              value: AMQ2 (demo)
+            - name: DEMO_AMQ2_COLOR
+              value: "#16a34a"
+            - name: DEMO_AMQ2_SNAPSHOT_URL
+              value: ""
+
+            - name: DEMO_AMQ3_LABEL
+              value: AMQ3 (demo)
+            - name: DEMO_AMQ3_COLOR
+              value: "#f97316"
+            - name: DEMO_AMQ3_SNAPSHOT_URL
+              value: ""
           ports:
             - containerPort: 8082
               name: http
