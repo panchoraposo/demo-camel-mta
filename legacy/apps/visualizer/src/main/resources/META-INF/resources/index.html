@@ -8,7 +8,10 @@
       :root { color-scheme: light dark; }
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
       .row { display: flex; gap: 16px; flex-wrap: wrap; }
-      .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; min-width: 320px; flex: 1; }
+      .card { border: 1px solid #ddd; border-radius: 12px; padding: 0; min-width: 320px; flex: 1; overflow: hidden; }
+      .cardInner { padding: 14px 16px 16px; }
+      .banner { padding: 10px 16px; color: white; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+      .badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.28); }
       .muted { opacity: 0.75; }
       .big { font-size: 32px; font-weight: 700; }
       code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
@@ -49,10 +52,21 @@
         return await r.json();
       }
 
-      function renderCard(url, snap, err) {
-        const header = el("div", {}, [
+      function renderCard(entry) {
+        const url = entry.url || "";
+        const snap = entry.snapshot || null;
+        const err = entry.ok ? null : (entry.error || "error");
+        const isDemo = url === "DEMO_DATA" || url === "" || url == null;
+
+        const banner = el("div", { class: "banner" }, [
+          el("div", { text: entry.label || entry.id || "cluster" }),
+          el("div", { class: "badge", text: err ? "ERROR" : (isDemo ? "DEMO_DATA" : "LIVE") }),
+        ]);
+        banner.style.background = entry.color || "#334155";
+
+        const header = el("div", { class: "cardInner" }, [
           el("div", { class: "muted", text: "Snapshot URL" }),
-          el("div", {}, [el("code", { text: url })]),
+          el("div", {}, [el("code", { text: url || "-" })]),
         ]);
 
         const stats = el("div", { style: "margin-top: 10px;" }, [
@@ -82,20 +96,22 @@
 
         const errLine = err ? el("div", { class: "error", style: "margin-top: 10px;", text: String(err) }) : null;
 
-        return el("div", { class: "card" }, [header, stats, table].concat(errLine ? [errLine] : []));
+        header.appendChild(stats);
+        header.appendChild(table);
+        if (errLine) header.appendChild(errLine);
+        return el("div", { class: "card" }, [banner, header]);
       }
 
       async function tick() {
         cardsEl.textContent = "";
         const entries = await fetchJson("/api/snapshots");
-        const urls = (entries || []).map(e => e.url);
-        if (urls.length === 0) {
-          statusEl.textContent = "No snapshot URLs configured. Set DEMO_SNAPSHOT_URLS (comma-separated).";
+        if (!entries || entries.length === 0) {
+          statusEl.textContent = "No clusters configured. Set DEMO_AMQ1_SNAPSHOT_URL / DEMO_AMQ2_SNAPSHOT_URL / DEMO_AMQ3_SNAPSHOT_URL (or DEMO_SNAPSHOT_URLS).";
           return;
         }
-        statusEl.textContent = `Polling ${urls.length} snapshot endpoint(s) every 2s.`;
+        statusEl.textContent = `Polling ${entries.length} cluster(s) every 2s.`;
         for (const e of entries) {
-          cardsEl.appendChild(renderCard(e.url, e.snapshot || null, e.ok ? null : (e.error || "error")));
+          cardsEl.appendChild(renderCard(e));
         }
       }
 
