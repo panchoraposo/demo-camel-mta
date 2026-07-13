@@ -1,7 +1,10 @@
 FROM registry.access.redhat.com/quarkus/mandrel-25-rhel9:latest AS build
 
+USER 0
 WORKDIR /workspace
 COPY modern modern
+RUN chown -R 1001:0 /workspace
+USER 1001
 
 # Build native inside the Mandrel builder image.
 RUN ./modern/mvnw -f modern/pom.xml -pl apps/kaoto-consumer -am package -DskipTests -Dquarkus.native.enabled=true -Dquarkus.package.jar.enabled=false -Dquarkus.native.additional-build-args=--initialize-at-run-time=org.jgroups.conf.XmlConfigurator,--initialize-at-run-time=org.jgroups.util.Util,--initialize-at-run-time=org.jgroups.logging.LogFactory
