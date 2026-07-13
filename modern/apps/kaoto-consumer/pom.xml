@@ -54,6 +54,12 @@
       <groupId>org.apache.activemq</groupId>
       <artifactId>artemis-jakarta-client</artifactId>
     </dependency>
+
+    <!-- Needed for JGroups Log4J2LogImpl during native image analysis -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
