@@ -7,7 +7,7 @@ WORKDIR /workspace
 COPY modern modern
 
 # Build native inside the Mandrel builder image.
-RUN mvn -f modern/pom.xml -pl apps/kaoto-consumer -am package -DskipTests -Dquarkus.native.enabled=true -Dquarkus.package.jar.enabled=false
+RUN mvn -f modern/pom.xml -pl apps/kaoto-consumer -am package -DskipTests -Dquarkus.native.enabled=true -Dquarkus.package.jar.enabled=false -Dquarkus.native.additional-build-args=--initialize-at-build-time=java.net.Inet4Address
 
 FROM registry.access.redhat.com/ubi9/ubi-micro:latest
 WORKDIR /work
