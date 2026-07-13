@@ -3,86 +3,222 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>AMQ Flow Visualizer (modern)</title>
+    <title>AMQ Broker · Flow</title>
     <style>
-      :root { color-scheme: light dark; }
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
-      .muted { opacity: 0.75; }
-      code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      :root{
+        --bg0:#0a0d14; --bg1:#121826; --card:rgba(255,255,255,.045);
+        --cardb:rgba(255,255,255,.09); --txt:#e8edf6; --muted:#8b97ad;
+        --rh:#ee0000; --green:#3ddc84; --amber:#ffb020;
+        --cyan:#38bdf8; --violet:#a78bfa; --teal:#2dd4bf;
+        --shadow:0 10px 40px rgba(0,0,0,.45);
+        --producer:#38bdf8; --broker:#ee0000; --consumer:#3ddc84;
+      }
+      *{box-sizing:border-box}
+      html,body{margin:0;height:100%}
+      body{
+        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+        color:var(--txt); background:
+          radial-gradient(1200px 700px at 70% -10%, #1b2540 0%, transparent 60%),
+          radial-gradient(900px 600px at 0% 110%, #25121a 0%, transparent 55%),
+          linear-gradient(160deg,var(--bg0),var(--bg1));
+        min-height:100%; overflow-x:hidden;
+      }
+      header{
+        display:flex;align-items:center;gap:16px;padding:18px 26px;
+        border-bottom:1px solid rgba(255,255,255,.06);
+      }
+      .logo{display:flex;align-items:center;gap:12px;min-width:0}
+      .logo .mark{
+        width:38px;height:38px;border-radius:10px;flex:0 0 auto;
+        background:linear-gradient(135deg,var(--rh),#a30000);
+        box-shadow:0 6px 18px rgba(238,0,0,.4);
+        display:grid;place-items:center;
+      }
+      .logo h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px;line-height:1.05}
+      .logo p{margin:2px 0 0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .spacer{flex:1}
+      .pill{
+        display:inline-flex;align-items:center;gap:7px;font-size:12.5px;
+        padding:7px 12px;border-radius:999px;border:1px solid var(--cardb);
+        background:var(--card);color:var(--muted)
+      }
+      .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+      .dot.ok{background:var(--green);box-shadow:0 0 10px var(--green)}
+      .dot.bad{background:#ff4d4d;box-shadow:0 0 10px #ff4d4d}
 
-      .grid { display: grid; grid-template-columns: 1fr 80px 1fr 80px 1fr; gap: 12px; align-items: stretch; margin-top: 16px; }
-      .node { border: 1px solid #ddd; border-radius: 14px; padding: 14px 16px; min-height: 220px; }
-      .nodeTitle { display: flex; justify-content: space-between; align-items: baseline; }
-      .title { font-weight: 800; font-size: 18px; }
-      .sub { font-size: 12px; opacity: 0.8; }
-      .big { font-size: 42px; font-weight: 900; letter-spacing: -0.02em; margin-top: 10px; }
-      .kpis { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; }
-      .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; border: 1px solid #ddd; font-size: 12px; }
-      .err { color: #b91c1c; margin-top: 10px; font-size: 13px; white-space: pre-wrap; }
+      .wrap{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:18px 26px}
+      @media(max-width:1100px){.wrap{grid-template-columns:1fr}}
 
-      .arrowWrap { display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 14px; border: 1px dashed #ddd; }
-      .arrow { font-size: 28px; font-weight: 900; opacity: 0.9; }
-      .rate { margin-top: 6px; font-size: 12px; opacity: 0.75; }
-      .pulse { width: 12px; height: 12px; border-radius: 50%; margin-top: 10px; background: #22c55e; box-shadow: 0 0 0 0 rgba(34,197,94, 0.8); }
-      .pulse.off { background: #94a3b8; box-shadow: none; }
-      @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(34,197,94, 0.7);} 70% { box-shadow: 0 0 0 16px rgba(34,197,94, 0);} 100% { box-shadow: 0 0 0 0 rgba(34,197,94, 0);} }
-      .pulse.on { animation: ping 1.5s infinite; }
+      .stagewrap{
+        position:relative;background:var(--card);border:1px solid var(--cardb);
+        border-radius:18px;box-shadow:var(--shadow);overflow:hidden;
+      }
+      .stage{position:relative;width:100%;height:clamp(440px,62vh,760px)}
+      svg#svg{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+      .flow{animation:dashflow 1s linear infinite}
+      @keyframes dashflow{to{stroke-dashoffset:-28}}
+
+      .node{position:absolute;transform:translate(-50%,-50%);z-index:5}
+      .endpoint{width:150px;text-align:center;}
+      .endpoint .ic{
+        width:54px;height:54px;margin:0 auto 8px;border-radius:16px;
+        display:grid;place-items:center;font-size:24px;
+        background:linear-gradient(135deg,rgba(0,0,0,.45),rgba(0,0,0,.22));
+        border:1px solid var(--cardb);box-shadow:var(--shadow)
+      }
+      .endpoint .lbl{font-size:13px;font-weight:900}
+      .endpoint .sub{font-size:11px;color:var(--muted);line-height:1.15}
+      .badge{display:inline-block;margin-top:5px;font-size:11px;padding:2px 8px;border-radius:999px;
+        background:rgba(56,189,248,.16);color:var(--cyan);border:1px solid rgba(56,189,248,.3)}
+
+      .broker{
+        width:240px;border-radius:16px;padding:14px 15px;
+        background:linear-gradient(180deg,rgba(0,0,0,.56),rgba(0,0,0,.28));
+        backdrop-filter: blur(10px);
+        border:1px solid var(--cardb);box-shadow:var(--shadow);position:relative;
+      }
+      .broker.online{border-color:rgba(61,220,132,.35)}
+      .broker.offline{opacity:.55;filter:grayscale(.7);border-color:rgba(255,77,77,.45)}
+      .broker .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+      .broker .nm{font-weight:900;font-size:15px;display:flex;align-items:center;gap:10px}
+      .bmark{width:11px;height:11px;border-radius:50%;background:var(--rh)}
+      .st{font-size:10.5px;font-weight:900;padding:3px 9px;border-radius:999px;
+        letter-spacing:.4px;text-transform:uppercase}
+      .st.online{background:rgba(61,220,132,.16);color:var(--green);border:1px solid rgba(61,220,132,.35)}
+      .st.offline{background:rgba(255,77,77,.14);color:#ffb8b8;border:1px solid rgba(255,77,77,.35)}
+      .broker .pod{font-size:11px;color:var(--muted);margin-top:2px}
+      .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+      .met{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.05);
+        border-radius:10px;padding:7px 9px}
+      .met .v{font-size:18px;font-weight:900;line-height:1}
+      .met .k{font-size:10px;color:var(--muted);margin-top:3px}
+      .met.hl .v{color:var(--cyan)}
+      .met.good .v{color:var(--green)}
+
+      .side{display:flex;flex-direction:column;gap:14px}
+      .panel{background:var(--card);border:1px solid var(--cardb);border-radius:16px;
+        padding:16px;box-shadow:var(--shadow)}
+      .panel h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;
+        letter-spacing:.6px;color:var(--muted)}
+      .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+      table{width:100%;border-collapse:separate;border-spacing:0 8px;table-layout:fixed}
+      td{font-size:12px;color:var(--muted);padding:8px 10px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08);overflow:hidden}
+      td:first-child{width:70px}
+      tr td:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+      tr td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+      .evt{white-space:pre-wrap;word-break:break-word;line-height:1.35;max-height:120px;overflow:auto;padding-right:6px}
     </style>
   </head>
   <body>
-    <h2>AMQ Flow Visualizer <span class="muted">(modern)</span></h2>
-    <div class="muted">
-      This UI polls <code>/api/flow</code> to show message movement from <b>producer</b> to <b>broker</b> to <b>consumer</b>.
-      Broker queue metrics are read via <code>Jolokia</code>.
-    </div>
-
-    <div id="status" class="muted" style="margin-top: 12px;"></div>
-
-    <div class="grid">
-      <div class="node" id="producerNode"></div>
-      <div class="arrowWrap" id="p2b">
-        <div class="arrow">→</div>
-        <div class="rate" id="rateP2B">- msg/s</div>
-        <div class="pulse off" id="pulseP2B"></div>
+    <header>
+      <div class="logo">
+        <div class="mark" aria-hidden="true"></div>
+        <div style="min-width:0">
+          <h1>AMQ Broker · Flow</h1>
+          <p id="subtitle">Producer → Broker → Consumer (Jolokia metrics)</p>
+        </div>
       </div>
-      <div class="node" id="brokerNode"></div>
-      <div class="arrowWrap" id="b2c">
-        <div class="arrow">→</div>
-        <div class="rate" id="rateB2C">- msg/s</div>
-        <div class="pulse off" id="pulseB2C"></div>
+      <div class="spacer"></div>
+      <div class="pill"><span class="dot" id="dotProducer"></span><span id="stProducer">producer</span></div>
+      <div class="pill"><span class="dot" id="dotBroker"></span><span id="stBroker">broker</span></div>
+      <div class="pill"><span class="dot" id="dotConsumer"></span><span id="stConsumer">consumer</span></div>
+    </header>
+
+    <div class="wrap">
+      <div class="stagewrap">
+        <div class="stage" id="stage">
+          <svg id="svg" viewBox="0 0 1000 600" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="var(--producer)" stop-opacity="0.9"></stop>
+                <stop offset="1" stop-color="var(--rh)" stop-opacity="0.9"></stop>
+              </linearGradient>
+              <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="var(--rh)" stop-opacity="0.9"></stop>
+                <stop offset="1" stop-color="var(--consumer)" stop-opacity="0.9"></stop>
+              </linearGradient>
+            </defs>
+            <path id="p2bLine" d="M 220 300 C 330 300, 370 220, 500 220" stroke="url(#g1)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
+            <path id="b2cLine" d="M 500 380 C 630 380, 670 300, 780 300" stroke="url(#g2)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
+          </svg>
+
+          <div class="node endpoint" style="left:22%;top:50%">
+            <div class="ic" style="border-color:rgba(56,189,248,.35)">📤</div>
+            <div class="lbl">Producer</div>
+            <div class="sub">sent messages</div>
+            <div class="badge" id="rateP2B">- msg/s</div>
+          </div>
+
+          <div class="node" style="left:50%;top:50%">
+            <div class="broker online" id="brokerCard">
+              <div class="top">
+                <div>
+                  <div class="nm"><span class="bmark"></span>AMQ Broker</div>
+                  <div class="pod mono" id="queueName">queue: demo.events</div>
+                </div>
+                <div class="st online" id="brokerStatus">online</div>
+              </div>
+              <div class="grid2">
+                <div class="met hl"><div class="v" id="qDepth">-</div><div class="k">MessageCount (depth)</div></div>
+                <div class="met"><div class="v" id="qConsumers">-</div><div class="k">ConsumerCount</div></div>
+                <div class="met"><div class="v" id="qAdded">-</div><div class="k">MessagesAdded</div></div>
+                <div class="met good"><div class="v" id="qAcked">-</div><div class="k">MessagesAcknowledged</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="node endpoint" style="left:78%;top:50%">
+            <div class="ic" style="border-color:rgba(61,220,132,.35)">📥</div>
+            <div class="lbl">Consumer</div>
+            <div class="sub">received messages</div>
+            <div class="badge" id="rateB2C">- msg/s</div>
+          </div>
+        </div>
       </div>
-      <div class="node" id="consumerNode"></div>
+
+      <div class="side">
+        <div class="panel">
+          <h3>Status</h3>
+          <div class="mono" id="statusLine">connecting…</div>
+        </div>
+        <div class="panel">
+          <h3>Last events</h3>
+          <table>
+            <tbody id="eventsBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <script>
-      const statusEl = document.getElementById("status");
-      const producerNode = document.getElementById("producerNode");
-      const brokerNode = document.getElementById("brokerNode");
-      const consumerNode = document.getElementById("consumerNode");
+      const statusLine = document.getElementById("statusLine");
+      const queueNameEl = document.getElementById("queueName");
+
+      const dotProducer = document.getElementById("dotProducer");
+      const dotBroker = document.getElementById("dotBroker");
+      const dotConsumer = document.getElementById("dotConsumer");
+      const stProducer = document.getElementById("stProducer");
+      const stBroker = document.getElementById("stBroker");
+      const stConsumer = document.getElementById("stConsumer");
+
       const rateP2B = document.getElementById("rateP2B");
       const rateB2C = document.getElementById("rateB2C");
-      const pulseP2B = document.getElementById("pulseP2B");
-      const pulseB2C = document.getElementById("pulseB2C");
+
+      const qDepth = document.getElementById("qDepth");
+      const qConsumers = document.getElementById("qConsumers");
+      const qAdded = document.getElementById("qAdded");
+      const qAcked = document.getElementById("qAcked");
+
+      const brokerCard = document.getElementById("brokerCard");
+      const brokerStatus = document.getElementById("brokerStatus");
+      const eventsBody = document.getElementById("eventsBody");
 
       let prev = null;
 
-      function el(tag, attrs = {}, children = []) {
-        const n = document.createElement(tag);
-        for (const [k, v] of Object.entries(attrs)) {
-          if (k === "class") n.className = v;
-          else if (k === "text") n.textContent = v;
-          else n.setAttribute(k, v);
-        }
-        for (const c of children) n.appendChild(c);
-        return n;
+      function setDot(dot, ok) {
+        dot.classList.remove("ok","bad");
+        dot.classList.add(ok ? "ok" : "bad");
       }
-
-      async function fetchJson(url) {
-        const r = await fetch(url, { cache: "no-store" });
-        if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-        return await r.json();
-      }
-
       function fmtNum(x) {
         if (x == null || Number.isNaN(Number(x))) return "-";
         const n = Number(x);
@@ -90,104 +226,94 @@
                n >= 1_000 ? (n/1_000).toFixed(1) + "k" :
                String(n);
       }
-
-      function computeRate(nowVal, prevVal, dtSeconds) {
-        if (nowVal == null || prevVal == null || dtSeconds <= 0) return null;
-        return (Number(nowVal) - Number(prevVal)) / dtSeconds;
+      function rate(nowVal, prevVal, dt) {
+        if (nowVal == null || prevVal == null || !dt || dt <= 0) return null;
+        return (Number(nowVal) - Number(prevVal)) / dt;
+      }
+      async function fetchJson(url) {
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+        return await r.json();
+      }
+      function pickLast(flow) {
+        const out = [];
+        const p = flow.producer && flow.producer.last ? flow.producer.last : [];
+        const c = flow.consumer && flow.consumer.last ? flow.consumer.last : [];
+        for (const it of p.slice(0, 3)) out.push({tag:"prod", ts: it.sentAt || "", id: it.eventId || "", body: it.body || ""});
+        for (const it of c.slice(0, 3)) out.push({tag:"cons", ts: it.receivedAt || "", id: it.eventId || "", body: it.body || ""});
+        return out.slice(0, 6);
       }
 
-      function setPulse(elm, on) {
-        elm.classList.remove("on", "off");
-        elm.classList.add(on ? "on" : "off");
-      }
-
-      function renderNode(target, title, subtitle, big, pills, err) {
-        target.textContent = "";
-        target.appendChild(el("div", { class: "nodeTitle" }, [
-          el("div", {}, [
-            el("div", { class: "title", text: title }),
-            el("div", { class: "sub", text: subtitle }),
-          ]),
-        ]));
-        target.appendChild(el("div", { class: "big", text: big }));
-        const kpis = el("div", { class: "kpis" });
-        for (const p of (pills || [])) kpis.appendChild(el("div", { class: "pill", text: p }));
-        target.appendChild(kpis);
-        if (err) target.appendChild(el("div", { class: "err", text: err }));
+      function renderEvents(items) {
+        eventsBody.textContent = "";
+        if (!items || items.length === 0) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td class="mono">-</td><td class="evt">No events yet</td>`;
+          eventsBody.appendChild(tr);
+          return;
+        }
+        for (const it of items) {
+          const tr = document.createElement("tr");
+          const t = (it.tag || "").toUpperCase();
+          const left = `${t}`;
+          const right = `[${it.id}] ${it.body}`.slice(0, 420);
+          tr.innerHTML = `<td class="mono">${left}</td><td class="evt mono">${right}</td>`;
+          eventsBody.appendChild(tr);
+        }
       }
 
       async function tick() {
-        const now = await fetchJson("/api/flow");
-        const fetchedAt = now.fetchedAt || new Date().toISOString();
-        const st = now.status || {};
+        let flow;
+        try {
+          flow = await fetchJson("/api/flow");
+        } catch (e) {
+          statusLine.textContent = `ERROR: ${String(e)}`;
+          setDot(dotProducer,false); setDot(dotBroker,false); setDot(dotConsumer,false);
+          brokerCard.classList.add("offline");
+          brokerCard.classList.remove("online");
+          brokerStatus.textContent = "offline";
+          brokerStatus.className = "st offline";
+          return;
+        }
 
-        statusEl.textContent = `Polling every 2s. queue=${now.queue || "-"} fetchedAt=${fetchedAt}`;
+        const st = flow.status || {};
+        const okP = !!st.producerOk;
+        const okB = !!st.brokerOk;
+        const okC = !!st.consumerOk;
+        setDot(dotProducer, okP);
+        setDot(dotBroker, okB);
+        setDot(dotConsumer, okC);
 
-        const prod = now.producer || {};
-        const cons = now.consumer || {};
-        const broker = now.broker || {};
-        const qm = (broker && broker.metrics) ? broker.metrics : {};
+        stProducer.textContent = okP ? "producer ok" : "producer error";
+        stBroker.textContent = okB ? "broker ok" : "broker error";
+        stConsumer.textContent = okC ? "consumer ok" : "consumer error";
 
-        const sent = prod.sent;
-        const recv = cons.received;
-        const msgCount = qm.MessageCount;
-        const added = qm.MessagesAdded;
-        const acked = qm.MessagesAcknowledged;
-        const consumers = qm.ConsumerCount;
-        const delivering = qm.DeliveringCount;
+        queueNameEl.textContent = `queue: ${flow.queue || "-"}`;
+        brokerCard.classList.toggle("online", okB);
+        brokerCard.classList.toggle("offline", !okB);
+        brokerStatus.textContent = okB ? "online" : "offline";
+        brokerStatus.className = okB ? "st online" : "st offline";
 
+        const prod = flow.producer || {};
+        const cons = flow.consumer || {};
+        const qm = flow.broker && flow.broker.metrics ? flow.broker.metrics : {};
+
+        qDepth.textContent = fmtNum(qm.MessageCount);
+        qConsumers.textContent = fmtNum(qm.ConsumerCount);
+        qAdded.textContent = fmtNum(qm.MessagesAdded);
+        qAcked.textContent = fmtNum(qm.MessagesAcknowledged);
+
+        const fetchedAt = flow.fetchedAt || new Date().toISOString();
         const dt = prev ? (Date.parse(fetchedAt) - Date.parse(prev.fetchedAt || fetchedAt)) / 1000 : null;
-        const rateSent = (prev && dt) ? computeRate(sent, prev.producer?.sent, dt) : null;
-        const rateAck = (prev && dt) ? computeRate(acked, prev.broker?.metrics?.MessagesAcknowledged, dt) : null;
+        const rSent = prev ? rate(prod.sent, prev.prodSent, dt) : null;
+        const rAck = prev ? rate(qm.MessagesAcknowledged, prev.acked, dt) : null;
+        rateP2B.textContent = `${rSent == null ? "-" : rSent.toFixed(1)} msg/s`;
+        rateB2C.textContent = `${rAck == null ? "-" : rAck.toFixed(1)} msg/s`;
 
-        rateP2B.textContent = `${rateSent == null ? "-" : rateSent.toFixed(1)} msg/s`;
-        rateB2C.textContent = `${rateAck == null ? "-" : rateAck.toFixed(1)} msg/s`;
-        setPulse(pulseP2B, rateSent != null && rateSent > 0.1);
-        setPulse(pulseB2C, rateAck != null && rateAck > 0.1);
+        statusLine.textContent = `queue=${flow.queue} · depth=${fmtNum(qm.MessageCount)} · fetchedAt=${fetchedAt}`;
+        renderEvents(pickLast(flow));
 
-        renderNode(
-          producerNode,
-          "Producer",
-          st.producerOk ? "OK" : "ERROR",
-          fmtNum(sent),
-          [
-            `rate: ${rateSent == null ? "-" : rateSent.toFixed(1)} msg/s`,
-            `endpoint: /api/snapshot`,
-          ],
-          st.producerOk ? null : (st.producerError || "producer error")
-        );
-
-        renderNode(
-          brokerNode,
-          "AMQ Broker",
-          "Jolokia queue metrics",
-          fmtNum(msgCount),
-          [
-            `queue depth: ${fmtNum(msgCount)}`,
-            `added: ${fmtNum(added)}`,
-            `acked: ${fmtNum(acked)}`,
-            `consumers: ${fmtNum(consumers)}`,
-            `delivering: ${fmtNum(delivering)}`,
-          ],
-          st.brokerOk ? null : (st.brokerError || "broker error")
-        );
-
-        renderNode(
-          consumerNode,
-          "Consumer",
-          st.consumerOk ? "OK" : "ERROR",
-          fmtNum(recv),
-          [
-            `endpoint: /api/snapshot`,
-          ],
-          st.consumerOk ? null : (st.consumerError || "consumer error")
-        );
-
-        prev = {
-          fetchedAt,
-          producer: { sent },
-          broker: { metrics: { MessagesAcknowledged: acked } }
-        };
+        prev = { fetchedAt, prodSent: prod.sent, acked: qm.MessagesAcknowledged };
       }
 
       (async () => {
