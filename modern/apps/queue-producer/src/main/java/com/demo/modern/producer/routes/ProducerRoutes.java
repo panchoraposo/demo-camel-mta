@@ -34,7 +34,7 @@ public class ProducerRoutes extends RouteBuilder {
         .autoStartup(timerEnabled)
         .process(e -> {
           try {
-            service.sendOne("tick");
+            service.sendAuto();
           } catch (Exception ex) {
             throw new RuntimeException(ex);
           }

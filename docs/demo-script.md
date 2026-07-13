@@ -29,6 +29,12 @@ This demo shows a simple messaging workload modernized from a Podman-first stack
 - Show modern apps deployed via GitOps:
   - producer / consumer / visualizer
 - Open the modern visualizer Route and show live message counters.
+- Increase the impact:
+  - Scale the producer:
+    - `oc -n demo-camel-mta scale deployment/modern-queue-producer --replicas=5`
+  - Show how the **msg/s** and counters jump in the visualizer.
+  - Optionally scale back down:
+    - `oc -n demo-camel-mta scale deployment/modern-queue-producer --replicas=1`
 
 ## 4) Optional: Dev Spaces
 

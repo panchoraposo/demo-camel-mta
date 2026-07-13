@@ -8,10 +8,10 @@
       :root{
         --bg0:#0a0d14; --bg1:#121826; --card:rgba(255,255,255,.045);
         --cardb:rgba(255,255,255,.09); --txt:#e8edf6; --muted:#8b97ad;
-        --rh:#ee0000; --green:#3ddc84; --amber:#ffb020;
+        --green:#3ddc84; --amber:#ffb020;
         --cyan:#38bdf8; --violet:#a78bfa; --teal:#2dd4bf;
         --shadow:0 10px 40px rgba(0,0,0,.45);
-        --producer:#38bdf8; --broker:#ee0000; --consumer:#3ddc84;
+        --producer:#38bdf8; --broker:#ffb020; --consumer:#3ddc84;
       }
       *{box-sizing:border-box}
       html,body{margin:0;height:100%}
@@ -28,11 +28,15 @@
         border-bottom:1px solid rgba(255,255,255,.06);
       }
       .logo{display:flex;align-items:center;gap:12px;min-width:0}
-      .logo .mark{
-        width:38px;height:38px;border-radius:10px;flex:0 0 auto;
-        background:linear-gradient(135deg,var(--rh),#a30000);
-        box-shadow:0 6px 18px rgba(238,0,0,.4);
-        display:grid;place-items:center;
+      .logo .chip{
+        flex:0 0 auto;
+        height:30px; padding:0 10px;
+        display:inline-flex; align-items:center; justify-content:center;
+        border-radius:10px;
+        background:rgba(255,255,255,.06);
+        border:1px solid rgba(255,255,255,.10);
+        color:rgba(232,237,246,.92);
+        font-weight:900; letter-spacing:.6px;
       }
       .logo h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px;line-height:1.05}
       .logo p{margin:2px 0 0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -57,6 +61,7 @@
       svg#svg{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
       .flow{animation:dashflow 1s linear infinite}
       @keyframes dashflow{to{stroke-dashoffset:-28}}
+      .pkt{filter:drop-shadow(0 0 10px rgba(56,189,248,.55))}
 
       .node{position:absolute;transform:translate(-50%,-50%);z-index:5}
       .endpoint{width:150px;text-align:center;}
@@ -80,18 +85,18 @@
       .broker.online{border-color:rgba(61,220,132,.35)}
       .broker.offline{opacity:.55;filter:grayscale(.7);border-color:rgba(255,77,77,.45)}
       .broker .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-      .broker .nm{font-weight:900;font-size:15px;display:flex;align-items:center;gap:10px}
-      .bmark{width:11px;height:11px;border-radius:50%;background:var(--rh)}
+      .broker .nm{font-weight:900;font-size:14px;display:flex;align-items:center;gap:10px}
+      .bmark{width:10px;height:10px;border-radius:50%;background:var(--broker)}
       .st{font-size:10.5px;font-weight:900;padding:3px 9px;border-radius:999px;
         letter-spacing:.4px;text-transform:uppercase}
       .st.online{background:rgba(61,220,132,.16);color:var(--green);border:1px solid rgba(61,220,132,.35)}
       .st.offline{background:rgba(255,77,77,.14);color:#ffb8b8;border:1px solid rgba(255,77,77,.35)}
-      .broker .pod{font-size:11px;color:var(--muted);margin-top:2px}
+      .broker .pod{font-size:11px;color:var(--muted);margin-top:2px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
       .met{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.05);
         border-radius:10px;padding:7px 9px}
-      .met .v{font-size:18px;font-weight:900;line-height:1}
-      .met .k{font-size:10px;color:var(--muted);margin-top:3px}
+      .met .v{font-size:16px;font-weight:900;line-height:1}
+      .met .k{font-size:9px;color:var(--muted);margin-top:3px}
       .met.hl .v{color:var(--cyan)}
       .met.good .v{color:var(--green)}
 
@@ -112,7 +117,7 @@
   <body>
     <header>
       <div class="logo">
-        <div class="mark" aria-hidden="true"></div>
+        <div class="chip" aria-hidden="true">AMQ</div>
         <div style="min-width:0">
           <h1>AMQ Broker · Flow</h1>
           <p id="subtitle">Producer → Broker → Consumer (Jolokia metrics)</p>
@@ -127,19 +132,22 @@
     <div class="wrap">
       <div class="stagewrap">
         <div class="stage" id="stage">
-          <svg id="svg" viewBox="0 0 1000 600" preserveAspectRatio="none">
+          <svg id="svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
             <defs>
               <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0" stop-color="var(--producer)" stop-opacity="0.9"></stop>
-                <stop offset="1" stop-color="var(--rh)" stop-opacity="0.9"></stop>
+                <stop offset="1" stop-color="var(--broker)" stop-opacity="0.9"></stop>
               </linearGradient>
               <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stop-color="var(--rh)" stop-opacity="0.9"></stop>
+                <stop offset="0" stop-color="var(--broker)" stop-opacity="0.9"></stop>
                 <stop offset="1" stop-color="var(--consumer)" stop-opacity="0.9"></stop>
               </linearGradient>
             </defs>
-            <path id="p2bLine" d="M 220 300 C 330 300, 370 220, 500 220" stroke="url(#g1)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
-            <path id="b2cLine" d="M 500 380 C 630 380, 670 300, 780 300" stroke="url(#g2)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
+            <path id="p2bLine" d="M 220 300 C 320 300, 400 300, 500 300" stroke="url(#g1)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
+            <path id="b2cLine" d="M 500 300 C 600 300, 680 300, 780 300" stroke="url(#g2)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
+
+            <g id="packetsP2B"></g>
+            <g id="packetsB2C"></g>
           </svg>
 
           <div class="node endpoint" style="left:22%;top:50%">
@@ -213,7 +221,79 @@
       const brokerStatus = document.getElementById("brokerStatus");
       const eventsBody = document.getElementById("eventsBody");
 
+      const p2bPath = document.getElementById("p2bLine");
+      const b2cPath = document.getElementById("b2cLine");
+      const packetsP2BGroup = document.getElementById("packetsP2B");
+      const packetsB2CGroup = document.getElementById("packetsB2C");
+
       let prev = null;
+      let lastRates = { sent: 0, ack: 0 };
+
+      function clamp(n, lo, hi) {
+        return Math.max(lo, Math.min(hi, n));
+      }
+
+      function cssVar(name, fallback) {
+        const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+        const s = (v || "").trim();
+        return s || fallback;
+      }
+
+      function makeCircles(group, max, fill) {
+        const out = [];
+        group.textContent = "";
+        for (let i = 0; i < max; i++) {
+          const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          c.setAttribute("r", "4.2");
+          c.setAttribute("fill", fill);
+          c.setAttribute("opacity", "0.95");
+          c.setAttribute("class", "pkt");
+          group.appendChild(c);
+          out.push(c);
+        }
+        return out;
+      }
+
+      const pktP2B = makeCircles(packetsP2BGroup, 14, cssVar("--producer", "#38bdf8"));
+      const pktB2C = makeCircles(packetsB2CGroup, 14, cssVar("--consumer", "#3ddc84"));
+
+      function packetCountFromRate(r) {
+        if (r == null || !Number.isFinite(r) || r <= 0) return 0;
+        return clamp(Math.round(r * 1.2), 1, 14);
+      }
+
+      function packetSpeedFromRate(r) {
+        if (r == null || !Number.isFinite(r) || r <= 0) return 0;
+        return clamp(90 + r * 28, 90, 520);
+      }
+
+      function renderPackets(path, circles, nowSeconds, rate) {
+        const n = packetCountFromRate(rate);
+        const speed = packetSpeedFromRate(rate);
+        const len = path.getTotalLength();
+        for (let i = 0; i < circles.length; i++) {
+          const el = circles[i];
+          if (i >= n || speed <= 0) {
+            el.setAttribute("display", "none");
+            continue;
+          }
+          el.setAttribute("display", "block");
+          const offset = (i * (len / n)) % len;
+          const at = (nowSeconds * speed + offset) % len;
+          const pt = path.getPointAtLength(at);
+          el.setAttribute("cx", String(pt.x));
+          el.setAttribute("cy", String(pt.y));
+        }
+      }
+
+      let animStart = performance.now();
+      function animate(now) {
+        const t = (now - animStart) / 1000;
+        renderPackets(p2bPath, pktP2B, t, lastRates.sent);
+        renderPackets(b2cPath, pktB2C, t, lastRates.ack);
+        requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
 
       function setDot(dot, ok) {
         dot.classList.remove("ok","bad");
@@ -255,8 +335,16 @@
         for (const it of items) {
           const tr = document.createElement("tr");
           const t = (it.tag || "").toUpperCase();
-          const left = `${t}`;
-          const right = `[${it.id}] ${it.body}`.slice(0, 420);
+          let type = "";
+          let payload = it.body || "";
+          try {
+            const j = JSON.parse(it.body || "{}");
+            type = j.type || "";
+            payload = j.payload || it.body || "";
+          } catch {}
+
+          const left = type ? `${t}/${String(type).toUpperCase()}` : `${t}`;
+          const right = `[${it.id}] ${payload}`.slice(0, 420);
           tr.innerHTML = `<td class="mono">${left}</td><td class="evt mono">${right}</td>`;
           eventsBody.appendChild(tr);
         }
@@ -309,6 +397,9 @@
         const rAck = prev ? rate(qm.MessagesAcknowledged, prev.acked, dt) : null;
         rateP2B.textContent = `${rSent == null ? "-" : rSent.toFixed(1)} msg/s`;
         rateB2C.textContent = `${rAck == null ? "-" : rAck.toFixed(1)} msg/s`;
+
+        lastRates.sent = rSent == null ? 0 : rSent;
+        lastRates.ack = rAck == null ? 0 : rAck;
 
         statusLine.textContent = `queue=${flow.queue} · depth=${fmtNum(qm.MessageCount)} · fetchedAt=${fetchedAt}`;
         renderEvents(pickLast(flow));

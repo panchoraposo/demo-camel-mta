@@ -17,6 +17,7 @@ import com.demo.modern.producer.service.ProducerService;
 public class ProducerResource {
 
   public static class SendRequest {
+    public String type;
     public String payload;
   }
 
@@ -26,18 +27,20 @@ public class ProducerResource {
   @POST
   @Path("/send")
   public DemoEvent send(SendRequest req) throws Exception {
+    String type = (req != null && req.type != null && !req.type.isBlank()) ? req.type : "custom";
     String payload = (req != null && req.payload != null) ? req.payload : "hello";
-    return service.sendOne(payload);
+    return service.sendOne(type, payload);
   }
 
   @POST
   @Path("/send/{count}")
   public DemoEvent[] sendMany(@PathParam("count") int count, SendRequest req) throws Exception {
     int n = Math.max(1, Math.min(count, 200));
+    String type = (req != null && req.type != null && !req.type.isBlank()) ? req.type : "custom";
     String payload = (req != null && req.payload != null) ? req.payload : "hello";
     DemoEvent[] out = new DemoEvent[n];
     for (int i = 0; i < n; i++) {
-      out[i] = service.sendOne(payload);
+      out[i] = service.sendOne(type, payload);
     }
     return out;
   }

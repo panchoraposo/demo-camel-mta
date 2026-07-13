@@ -4,14 +4,16 @@ public class DemoEvent {
   public String eventId;
   public String producerId;
   public String createdAt;
+  public String type;
   public String payload;
 
   public DemoEvent() {}
 
-  public DemoEvent(String eventId, String producerId, String createdAt, String payload) {
+  public DemoEvent(String eventId, String producerId, String createdAt, String type, String payload) {
     this.eventId = eventId;
     this.producerId = producerId;
     this.createdAt = createdAt;
+    this.type = type;
     this.payload = payload;
   }
 }
