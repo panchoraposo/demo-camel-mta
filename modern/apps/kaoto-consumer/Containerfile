@@ -1,8 +1,5 @@
 FROM registry.access.redhat.com/quarkus/mandrel-25-rhel9:latest AS build
 
-USER 0
-RUN microdnf install -y maven && microdnf clean all
-
 WORKDIR /workspace
 COPY modern modern
 
