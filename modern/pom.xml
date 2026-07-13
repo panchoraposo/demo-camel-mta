@@ -12,6 +12,7 @@
   <modules>
     <module>apps/queue-producer</module>
     <module>apps/event-consumer</module>
+    <module>apps/kaoto-consumer</module>
     <module>apps/visualizer</module>
   </modules>
 

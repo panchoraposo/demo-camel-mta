@@ -1,0 +1,27 @@
+#
+# Kaoto-friendly Camel route (YAML DSL).
+#
+# Demo intent:
+# - Consume from AMQ queue demo.events
+# - Record state in ConsumerState (for visualizer)
+# - OPTIONAL: enhance logging (can be edited live in Kaoto)
+#
+- route:
+    id: kaoto-consumer-jms
+    from:
+      uri: "jms:queue:{{demo.broker.queue}}"
+      steps:
+        # Persist message in memory for /api/snapshot
+        - bean:
+            ref: consumerState
+            method: onMessage
+
+        # Optional logging demo: you can modify this in Kaoto.
+        - choice:
+            when:
+              - simple: "{{demo.enhanced.logging.enabled}}"
+                steps:
+                  - log:
+                      loggingLevel: INFO
+                      message: "Consumed from {{demo.broker.queue}} body=${body}"
+
