@@ -9,9 +9,8 @@ USER 1001
 # Build native inside the Mandrel builder image.
 RUN ./modern/mvnw -f modern/pom.xml -pl apps/kaoto-consumer -am package -DskipTests -Dquarkus.native.enabled=true -Dquarkus.package.jar.enabled=false -Dquarkus.native.additional-build-args=--initialize-at-run-time=org.jgroups.conf.XmlConfigurator,--initialize-at-run-time=org.jgroups.util.Util,--initialize-at-run-time=org.jgroups.logging.LogFactory
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi9/ubi:latest
 WORKDIR /work
-RUN microdnf install -y zlib && microdnf clean all
 COPY --from=build /workspace/modern/apps/kaoto-consumer/target/*-runner /work/application
 
 EXPOSE 8083
