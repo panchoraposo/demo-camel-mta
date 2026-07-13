@@ -1,0 +1,69 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: modern-kaoto-consumer
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/panchoraposo/demo-camel-mta.git
+      ref: main
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: modern/apps/kaoto-consumer/Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: modern-kaoto-consumer:latest
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modern-kaoto-consumer
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"modern-kaoto-consumer:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: modern-kaoto-consumer
+  template:
+    metadata:
+      labels:
+        app: modern-kaoto-consumer
+    spec:
+      containers:
+        - name: app
+          image: ' '
+          imagePullPolicy: Always
+          env:
+            - name: DEMO_BROKER_URL
+              value: tcp://amq-broker-hdls-svc:61616
+            - name: DEMO_BROKER_USERNAME
+              value: admin
+            - name: DEMO_BROKER_PASSWORD
+              value: admin
+            - name: DEMO_BROKER_QUEUE
+              value: demo.events
+            - name: DEMO_ENHANCED_LOGGING_ENABLED
+              value: "false"
+          ports:
+            - containerPort: 8083
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modern-kaoto-consumer
+spec:
+  selector:
+    app: modern-kaoto-consumer
+  ports:
+    - name: http
+      port: 8083
+      targetPort: http
+
