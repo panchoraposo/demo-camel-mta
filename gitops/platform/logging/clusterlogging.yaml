@@ -1,15 +1,33 @@
-apiVersion: logging.openshift.io/v1
-kind: ClusterLogging
+apiVersion: observability.openshift.io/v1
+kind: ClusterLogForwarder
 metadata:
   name: instance
   namespace: openshift-logging
   annotations:
     argocd.argoproj.io/sync-wave: "40"
 spec:
-  collection:
-    type: vector
-  logStore:
-    type: lokistack
-    lokistack:
-      name: loki
+  serviceAccount:
+    name: logging-collector
+  outputs:
+    - name: lokistack-out
+      type: lokiStack
+      lokiStack:
+        target:
+          name: loki
+          namespace: openshift-logging
+        authentication:
+          token:
+            from: serviceAccount
+      tls:
+        ca:
+          configMapName: logging-loki-gateway-ca-bundle
+          key: service-ca.crt
+  pipelines:
+    - name: default-logstore
+      inputRefs:
+        - application
+        - infrastructure
+        - audit
+      outputRefs:
+        - lokistack-out
 

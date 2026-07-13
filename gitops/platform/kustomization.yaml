@@ -3,9 +3,5 @@ kind: Kustomization
 
 resources:
   - amq/activemq-artemis.yaml
-  - logging/odf/objectbucketclaim.yaml
-  - logging/odf/secret-sync-rbac.yaml
-  - logging/odf/secret-sync-job.yaml
-  - logging/lokistack.yaml
-  - logging/clusterlogging.yaml
+  
 
