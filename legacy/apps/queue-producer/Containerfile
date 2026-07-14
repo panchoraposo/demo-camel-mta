@@ -1,14 +1,9 @@
 FROM registry.access.redhat.com/ubi9/openjdk-17:latest AS build
 
-USER 0
-RUN microdnf install -y maven && microdnf clean all
-
 WORKDIR /workspace
-COPY legacy/pom.xml legacy/pom.xml
-COPY legacy/apps/queue-producer/pom.xml legacy/apps/queue-producer/pom.xml
-COPY legacy/apps/queue-producer/src legacy/apps/queue-producer/src
+COPY legacy legacy
 
-RUN mvn -f legacy/pom.xml -pl apps/queue-producer -am package -DskipTests
+RUN chmod +x legacy/mvnw && ./legacy/mvnw -f legacy/pom.xml -pl apps/queue-producer -am package -DskipTests
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:latest
 WORKDIR /deployments

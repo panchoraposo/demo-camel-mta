@@ -1,14 +1,9 @@
 FROM registry.access.redhat.com/ubi9/openjdk-17:latest AS build
 
-USER 0
-RUN microdnf install -y maven && microdnf clean all
-
 WORKDIR /workspace
-COPY legacy/pom.xml legacy/pom.xml
-COPY legacy/apps/event-consumer/pom.xml legacy/apps/event-consumer/pom.xml
-COPY legacy/apps/event-consumer/src legacy/apps/event-consumer/src
+COPY legacy legacy
 
-RUN mvn -f legacy/pom.xml -pl apps/event-consumer -am package -DskipTests
+RUN chmod +x legacy/mvnw && ./legacy/mvnw -f legacy/pom.xml -pl apps/event-consumer -am package -DskipTests
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:latest
 WORKDIR /deployments
