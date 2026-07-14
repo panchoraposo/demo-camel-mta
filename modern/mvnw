@@ -175,11 +175,10 @@ verbose "Couldn't find MAVEN_HOME, downloading and installing it ..."
 verbose "Downloading from: $distributionUrl"
 verbose "Downloading to: $TMP_DOWNLOAD_DIR/$distributionUrlName"
 
-# select .zip or .tar.gz
-if ! command -v unzip >/dev/null; then
-  distributionUrl="${distributionUrl%.zip}.tar.gz"
-  distributionUrlName="${distributionUrl##*/}"
-fi
+# Always keep the zip distribution URL.
+# Some minimal container images do not provide `unzip` (or `gzip`), so falling
+# back to .tar.gz can break builds. We'll extract the zip with `jar` when `unzip`
+# is not available.
 
 # verbose opt
 __MVNW_QUIET_WGET=--quiet __MVNW_QUIET_CURL=--silent __MVNW_QUIET_UNZIP=-q __MVNW_QUIET_TAR=''
@@ -249,11 +248,12 @@ if [ -n "${distributionSha256Sum-}" ]; then
   fi
 fi
 
-# unzip and move
+# extract and move
 if command -v unzip >/dev/null; then
   unzip ${__MVNW_QUIET_UNZIP:+"$__MVNW_QUIET_UNZIP"} "$TMP_DOWNLOAD_DIR/$distributionUrlName" -d "$TMP_DOWNLOAD_DIR" || die "failed to unzip"
 else
-  tar xzf${__MVNW_QUIET_TAR:+"$__MVNW_QUIET_TAR"} "$TMP_DOWNLOAD_DIR/$distributionUrlName" -C "$TMP_DOWNLOAD_DIR" || die "failed to untar"
+  # Fallback: use JDK's `jar` to extract the zip (no `unzip`/`gzip` needed).
+  (cd "$TMP_DOWNLOAD_DIR" && jar xf "$TMP_DOWNLOAD_DIR/$distributionUrlName") || die "failed to extract zip"
 fi
 
 # Find the actual extracted directory name (handles snapshots where filename != directory name)
