@@ -1,0 +1,19 @@
+apiVersion: org.eclipse.che/v2
+kind: CheCluster
+metadata:
+  name: devspaces
+  namespace: openshift-devspaces
+spec:
+  components:
+    pluginRegistry:
+      # Use the public Open VSX so we can install Kaoto + RH Dependency Analytics.
+      openVSXURL: https://open-vsx.org
+  devEnvironments:
+    # VS Code - Open Source editor for Dev Spaces.
+    defaultEditor: che-incubator/che-code/latest
+    defaultPlugins:
+      - editor: che-incubator/che-code/latest
+        plugins:
+          - redhat/vscode-kaoto/latest
+          - redhat/fabric8-analytics/latest
+

@@ -4,10 +4,16 @@ metadata:
 components:
   - name: tools
     container:
-      image: registry.access.redhat.com/ubi9/openjdk-17:latest
+      image: registry.redhat.io/devspaces/udi-rhel9:latest
       memoryLimit: 2Gi
       mountSources: true
       command: ["sleep", "infinity"]
+      volumeMounts:
+        - name: m2
+          path: /home/user/.m2
+  - name: m2
+    volume:
+      size: 5Gi
 commands:
   - id: build
     exec:
@@ -17,6 +23,20 @@ commands:
       group:
         kind: build
         isDefault: true
+  - id: git-status
+    exec:
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: git status
+      group:
+        kind: run
+  - id: git-push
+    exec:
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: git push
+      group:
+        kind: run
   - id: dev-kaoto-consumer
     exec:
       component: tools
