@@ -1,13 +1,6 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17:latest AS build
-
-WORKDIR /workspace
-COPY legacy legacy
-
-RUN sh legacy/mvnw -f legacy/pom.xml -pl apps/event-consumer -am package -DskipTests
-
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:latest
 WORKDIR /deployments
-COPY --from=build /workspace/legacy/apps/event-consumer/target/quarkus-app/ /deployments/quarkus-app/
+COPY legacy/apps/event-consumer/target/quarkus-app/ /deployments/quarkus-app/
 
 EXPOSE 8081
 USER 185
