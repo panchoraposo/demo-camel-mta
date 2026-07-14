@@ -16,6 +16,8 @@
 *.swp
 *.swo
 .vscode/
+!.vscode/
+!.vscode/extensions.json
 
 # Node / UI tooling (if added later)
 **/node_modules/
