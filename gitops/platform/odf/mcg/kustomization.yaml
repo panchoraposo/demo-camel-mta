@@ -5,4 +5,5 @@ resources:
   - noobaa.yaml
   - backingstore.yaml
   - bucketclass.yaml
+  - obc-rbac.yaml
 

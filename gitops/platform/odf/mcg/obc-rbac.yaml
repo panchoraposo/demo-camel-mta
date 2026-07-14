@@ -1,0 +1,32 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: demo-camel-mta-noobaa-obc-provisioner
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+rules:
+  - apiGroups: ["objectbucket.io"]
+    resources: ["objectbucketclaims", "objectbucketclaims/status", "objectbuckets", "objectbuckets/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps", "events"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: demo-camel-mta-noobaa-obc-provisioner
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: demo-camel-mta-noobaa-obc-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: noobaa
+    namespace: openshift-storage
+  - kind: ServiceAccount
+    name: noobaa-endpoint
+    namespace: openshift-storage
+
