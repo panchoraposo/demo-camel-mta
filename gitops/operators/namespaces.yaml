@@ -26,3 +26,9 @@ kind: Namespace
 metadata:
   name: openshift-storage
 
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-mta
+
