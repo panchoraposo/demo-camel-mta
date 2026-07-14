@@ -3,7 +3,7 @@ FROM registry.access.redhat.com/ubi9/openjdk-17:latest AS build
 WORKDIR /workspace
 COPY legacy legacy
 
-RUN chmod +x legacy/mvnw && ./legacy/mvnw -f legacy/pom.xml -pl apps/visualizer -am package -DskipTests
+RUN sh legacy/mvnw -f legacy/pom.xml -pl apps/visualizer -am package -DskipTests
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:latest
 WORKDIR /deployments
