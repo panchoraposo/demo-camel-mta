@@ -9,7 +9,7 @@ services:
       AMQ_USER: admin
       AMQ_PASSWORD: admin
     healthcheck:
-      test: ["CMD", "bash", "-lc", "echo > /dev/tcp/localhost/8161" ]
+      test: ["CMD", "bash", "-lc", "echo > /dev/tcp/localhost/61616" ]
       interval: 5s
       timeout: 3s
       retries: 30
