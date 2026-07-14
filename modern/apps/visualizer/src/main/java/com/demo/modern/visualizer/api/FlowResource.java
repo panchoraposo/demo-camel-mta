@@ -33,6 +33,15 @@ public class FlowResource {
   @ConfigProperty(name = "demo.flow.consumer-snapshot-url", defaultValue = "http://modern-event-consumer:8081/api/snapshot")
   String consumerSnapshotUrl;
 
+  @ConfigProperty(name = "demo.flow.consumer2-snapshot-url", defaultValue = "http://modern-kaoto-consumer:8083/api/snapshot")
+  String consumer2SnapshotUrl;
+
+  @ConfigProperty(name = "demo.flow.consumer1-name", defaultValue = "event-consumer")
+  String consumer1Name;
+
+  @ConfigProperty(name = "demo.flow.consumer2-name", defaultValue = "kaoto-consumer")
+  String consumer2Name;
+
   @ConfigProperty(name = "demo.flow.broker-jolokia-url", defaultValue = "http://amq-broker-wconsj-0-svc:8161/console/jolokia")
   String brokerJolokiaUrl;
 
@@ -64,8 +73,27 @@ public class FlowResource {
     // producer
     root.set("producer", fetchJson(producerSnapshotUrl, status, "producerOk", "producerError"));
 
-    // consumer
-    root.set("consumer", fetchJson(consumerSnapshotUrl, status, "consumerOk", "consumerError"));
+    // consumers (two)
+    JsonNode consumer1 = fetchJson(consumerSnapshotUrl, status, "consumer1Ok", "consumer1Error");
+    JsonNode consumer2 = fetchJson(consumer2SnapshotUrl, status, "consumer2Ok", "consumer2Error");
+
+    // Backward-compatible fields
+    root.set("consumer", consumer1);
+    root.set("consumer2", consumer2);
+    status.put("consumerOk", status.path("consumer1Ok").asBoolean(false) && status.path("consumer2Ok").asBoolean(false));
+
+    ArrayNode consumers = mapper.createArrayNode();
+    ObjectNode c1 = mapper.createObjectNode();
+    c1.put("id", "consumer1");
+    c1.put("name", consumer1Name);
+    c1.set("snapshot", consumer1);
+    consumers.add(c1);
+    ObjectNode c2 = mapper.createObjectNode();
+    c2.put("id", "consumer2");
+    c2.put("name", consumer2Name);
+    c2.set("snapshot", consumer2);
+    consumers.add(c2);
+    root.set("consumers", consumers);
 
     // broker jolokia queue metrics
     root.set("broker", fetchBrokerQueueMetrics(status));

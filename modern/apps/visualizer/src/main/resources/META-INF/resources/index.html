@@ -51,8 +51,18 @@
         position:relative;background:var(--card);border:1px solid var(--cardb);
         border-radius:18px;box-shadow:var(--shadow);overflow:hidden;
         height:100%;
+        display:flex;flex-direction:column;
       }
-      .stage{position:relative;width:100%;height:100%}
+      .stage{position:relative;width:100%;height:clamp(320px,46vh,520px);flex:0 0 auto}
+      .stageEvents{
+        flex:1;min-height:220px;
+        border-top:1px solid rgba(255,255,255,.06);
+        background:linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.18));
+        padding:14px 16px 16px;
+        display:flex;flex-direction:column;gap:10px;
+      }
+      .stageEvents h3{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+      .stageEvents .tblWrap{flex:1;min-height:0;overflow:auto}
       svg#svg{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
       .flow{animation:dashflow 1s linear infinite}
       @keyframes dashflow{to{stroke-dashoffset:-28}}
@@ -121,8 +131,7 @@
       .stat .k{font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
       .stat .v{margin-top:6px;font-size:12.5px;color:rgba(232,237,246,.92)}
 
-      .eventsPanel{display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
-      .eventsPanel table{flex:1;min-height:0}
+      .eventsPanel{display:none}
 
       .legend{
         display:flex;flex-direction:column;gap:10px;
@@ -148,7 +157,8 @@
       <div class="spacer"></div>
       <div class="pill"><span class="dot" id="dotProducer"></span><span id="stProducer">producer</span></div>
       <div class="pill"><span class="dot" id="dotBroker"></span><span id="stBroker">broker</span></div>
-      <div class="pill"><span class="dot" id="dotConsumer"></span><span id="stConsumer">consumer</span></div>
+      <div class="pill"><span class="dot" id="dotConsumer1"></span><span id="stConsumer1">consumer 1</span></div>
+      <div class="pill"><span class="dot" id="dotConsumer2"></span><span id="stConsumer2">consumer 2</span></div>
     </header>
 
     <div class="wrap">
@@ -165,22 +175,24 @@
                 <stop offset="1" stop-color="var(--consumer)" stop-opacity="0.9"></stop>
               </linearGradient>
             </defs>
-            <!-- straight connectors, anchored on nodes -->
-            <path id="p2bLine" d="M 275 300 C 315 300, 350 300, 390 300" stroke="url(#g1)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
-            <path id="b2cLine" d="M 610 300 C 650 300, 685 300, 725 300" stroke="url(#g2)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
+            <!-- connectors: computed in JS to align with nodes -->
+            <path id="p2bLine" d="M 260 300 L 420 300" stroke="url(#g1)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
+            <path id="b2c1Line" d="M 560 300 L 740 260" stroke="url(#g2)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
+            <path id="b2c2Line" d="M 560 300 L 740 340" stroke="url(#g2)" stroke-width="3" fill="none" stroke-dasharray="10 12" class="flow"/>
 
             <g id="packetsP2B"></g>
-            <g id="packetsB2C"></g>
+            <g id="packetsB2C1"></g>
+            <g id="packetsB2C2"></g>
           </svg>
 
-          <div class="node endpoint" style="left:20%;top:50%">
+          <div class="node endpoint" id="producerNode" style="left:20%;top:50%">
             <div class="ic" style="border-color:rgba(56,189,248,.35)">📤</div>
             <div class="lbl">Producer</div>
             <div class="sub">sent messages</div>
             <div class="badge" id="rateP2B">- msg/s</div>
           </div>
 
-          <div class="node" style="left:50%;top:50%">
+          <div class="node" id="brokerNode" style="left:50%;top:50%">
             <div class="broker online" id="brokerCard">
               <div class="top">
                 <div>
@@ -198,11 +210,26 @@
             </div>
           </div>
 
-          <div class="node endpoint" style="left:80%;top:50%">
+          <div class="node endpoint" id="consumerNode1" style="left:80%;top:42%">
             <div class="ic" style="border-color:rgba(61,220,132,.35)">📥</div>
-            <div class="lbl">Consumer</div>
+            <div class="lbl" id="consumerName1">Consumer 1</div>
             <div class="sub">received messages</div>
-            <div class="badge" id="rateB2C">- msg/s</div>
+            <div class="badge" id="rateB2C1">- msg/s</div>
+          </div>
+
+          <div class="node endpoint" id="consumerNode2" style="left:80%;top:58%">
+            <div class="ic" style="border-color:rgba(61,220,132,.35)">📥</div>
+            <div class="lbl" id="consumerName2">Consumer 2</div>
+            <div class="sub">received messages</div>
+            <div class="badge" id="rateB2C2">- msg/s</div>
+          </div>
+        </div>
+        <div class="stageEvents">
+          <h3>Last events</h3>
+          <div class="tblWrap">
+            <table>
+              <tbody id="eventsBody"></tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -226,12 +253,6 @@
             </div>
           </div>
         </div>
-        <div class="panel eventsPanel">
-          <h3>Last events</h3>
-          <table>
-            <tbody id="eventsBody"></tbody>
-          </table>
-        </div>
         <div class="panel">
           <h3>Legend</h3>
           <div class="legend">
@@ -252,13 +273,16 @@
 
       const dotProducer = document.getElementById("dotProducer");
       const dotBroker = document.getElementById("dotBroker");
-      const dotConsumer = document.getElementById("dotConsumer");
+      const dotConsumer1 = document.getElementById("dotConsumer1");
+      const dotConsumer2 = document.getElementById("dotConsumer2");
       const stProducer = document.getElementById("stProducer");
       const stBroker = document.getElementById("stBroker");
-      const stConsumer = document.getElementById("stConsumer");
+      const stConsumer1 = document.getElementById("stConsumer1");
+      const stConsumer2 = document.getElementById("stConsumer2");
 
       const rateP2B = document.getElementById("rateP2B");
-      const rateB2C = document.getElementById("rateB2C");
+      const rateB2C1 = document.getElementById("rateB2C1");
+      const rateB2C2 = document.getElementById("rateB2C2");
 
       const qDepth = document.getElementById("qDepth");
       const qConsumers = document.getElementById("qConsumers");
@@ -269,13 +293,25 @@
       const brokerStatus = document.getElementById("brokerStatus");
       const eventsBody = document.getElementById("eventsBody");
 
+      const stage = document.getElementById("stage");
+      const svg = document.getElementById("svg");
+
       const p2bPath = document.getElementById("p2bLine");
-      const b2cPath = document.getElementById("b2cLine");
+      const b2c1Path = document.getElementById("b2c1Line");
+      const b2c2Path = document.getElementById("b2c2Line");
       const packetsP2BGroup = document.getElementById("packetsP2B");
-      const packetsB2CGroup = document.getElementById("packetsB2C");
+      const packetsB2C1Group = document.getElementById("packetsB2C1");
+      const packetsB2C2Group = document.getElementById("packetsB2C2");
+
+      const producerNode = document.getElementById("producerNode");
+      const brokerNode = document.getElementById("brokerNode");
+      const consumerNode1 = document.getElementById("consumerNode1");
+      const consumerNode2 = document.getElementById("consumerNode2");
+      const consumerName1 = document.getElementById("consumerName1");
+      const consumerName2 = document.getElementById("consumerName2");
 
       let prev = null;
-      let lastRates = { sent: 0, ack: 0 };
+      let lastRates = { sent: 0, c1: 0, c2: 0 };
 
       function clamp(n, lo, hi) {
         return Math.max(lo, Math.min(hi, n));
@@ -303,7 +339,8 @@
       }
 
       const pktP2B = makeCircles(packetsP2BGroup, 18, cssVar("--producer", "#38bdf8"));
-      const pktB2C = makeCircles(packetsB2CGroup, 18, cssVar("--consumer", "#3ddc84"));
+      const pktB2C1 = makeCircles(packetsB2C1Group, 18, cssVar("--consumer", "#3ddc84"));
+      const pktB2C2 = makeCircles(packetsB2C2Group, 18, cssVar("--consumer", "#3ddc84"));
 
       function packetCountFromRate(r) {
         if (r == null || !Number.isFinite(r) || r <= 0) return 0;
@@ -339,10 +376,51 @@
       function animate(now) {
         const t = (now - animStart) / 1000;
         renderPackets(p2bPath, pktP2B, t, lastRates.sent);
-        renderPackets(b2cPath, pktB2C, t, lastRates.ack);
+        renderPackets(b2c1Path, pktB2C1, t, lastRates.c1);
+        renderPackets(b2c2Path, pktB2C2, t, lastRates.c2);
         requestAnimationFrame(animate);
       }
       requestAnimationFrame(animate);
+
+      function setPathD(path, d) {
+        if (!path || !d) return;
+        path.setAttribute("d", d);
+      }
+
+      function anchorPoint(el, side) {
+        const r = el.getBoundingClientRect();
+        const x = side === "left" ? r.left : side === "right" ? r.right : (r.left + r.width / 2);
+        const y = side === "top" ? r.top : side === "bottom" ? r.bottom : (r.top + r.height / 2);
+        return { x, y };
+      }
+
+      function toSvgCoords(stageRect, pt) {
+        const vb = svg.viewBox.baseVal;
+        const sx = vb.width / stageRect.width;
+        const sy = vb.height / stageRect.height;
+        return {
+          x: (pt.x - stageRect.left) * sx,
+          y: (pt.y - stageRect.top) * sy
+        };
+      }
+
+      function layoutPaths() {
+        const stageRect = stage.getBoundingClientRect();
+        if (!stageRect.width || !stageRect.height) return;
+
+        const pOut = toSvgCoords(stageRect, anchorPoint(producerNode, "right"));
+        const bIn = toSvgCoords(stageRect, anchorPoint(brokerNode, "left"));
+        const bOut = toSvgCoords(stageRect, anchorPoint(brokerNode, "right"));
+
+        const c1In = toSvgCoords(stageRect, anchorPoint(consumerNode1, "left"));
+        const c2In = toSvgCoords(stageRect, anchorPoint(consumerNode2, "left"));
+
+        setPathD(p2bPath, `M ${pOut.x.toFixed(1)} ${pOut.y.toFixed(1)} L ${bIn.x.toFixed(1)} ${bIn.y.toFixed(1)}`);
+
+        const midX = bOut.x + (c1In.x - bOut.x) * 0.55;
+        setPathD(b2c1Path, `M ${bOut.x.toFixed(1)} ${bOut.y.toFixed(1)} L ${midX.toFixed(1)} ${bOut.y.toFixed(1)} L ${midX.toFixed(1)} ${c1In.y.toFixed(1)} L ${c1In.x.toFixed(1)} ${c1In.y.toFixed(1)}`);
+        setPathD(b2c2Path, `M ${bOut.x.toFixed(1)} ${bOut.y.toFixed(1)} L ${midX.toFixed(1)} ${bOut.y.toFixed(1)} L ${midX.toFixed(1)} ${c2In.y.toFixed(1)} L ${c2In.x.toFixed(1)} ${c2In.y.toFixed(1)}`);
+      }
 
       function setDot(dot, ok) {
         dot.classList.remove("ok","bad");
@@ -367,10 +445,12 @@
       function pickLast(flow) {
         const out = [];
         const p = flow.producer && flow.producer.last ? flow.producer.last : [];
-        const c = flow.consumer && flow.consumer.last ? flow.consumer.last : [];
+        const c1 = flow.consumer && flow.consumer.last ? flow.consumer.last : [];
+        const c2 = flow.consumer2 && flow.consumer2.last ? flow.consumer2.last : [];
         for (const it of p.slice(0, 3)) out.push({tag:"prod", ts: it.sentAt || "", id: it.eventId || "", body: it.body || ""});
-        for (const it of c.slice(0, 3)) out.push({tag:"cons", ts: it.receivedAt || "", id: it.eventId || "", body: it.body || ""});
-        return out.slice(0, 6);
+        for (const it of c1.slice(0, 4)) out.push({tag:"c1", ts: it.receivedAt || "", id: it.eventId || "", body: it.body || ""});
+        for (const it of c2.slice(0, 4)) out.push({tag:"c2", ts: it.receivedAt || "", id: it.eventId || "", body: it.body || ""});
+        return out.slice(0, 11);
       }
 
       function renderEvents(items) {
@@ -405,7 +485,7 @@
           flow = await fetchJson("/api/flow");
         } catch (e) {
           statusLine.textContent = `ERROR: ${String(e)}`;
-          setDot(dotProducer,false); setDot(dotBroker,false); setDot(dotConsumer,false);
+          setDot(dotProducer,false); setDot(dotBroker,false); setDot(dotConsumer1,false); setDot(dotConsumer2,false);
           brokerCard.classList.add("offline");
           brokerCard.classList.remove("online");
           brokerStatus.textContent = "offline";
@@ -416,14 +496,17 @@
         const st = flow.status || {};
         const okP = !!st.producerOk;
         const okB = !!st.brokerOk;
-        const okC = !!st.consumerOk;
+        const okC1 = !!st.consumer1Ok;
+        const okC2 = !!st.consumer2Ok;
         setDot(dotProducer, okP);
         setDot(dotBroker, okB);
-        setDot(dotConsumer, okC);
+        setDot(dotConsumer1, okC1);
+        setDot(dotConsumer2, okC2);
 
         stProducer.textContent = okP ? "producer ok" : "producer error";
         stBroker.textContent = okB ? "broker ok" : "broker error";
-        stConsumer.textContent = okC ? "consumer ok" : "consumer error";
+        stConsumer1.textContent = okC1 ? "consumer1 ok" : "consumer1 error";
+        stConsumer2.textContent = okC2 ? "consumer2 ok" : "consumer2 error";
 
         queueNameEl.textContent = `queue: ${flow.queue || "-"}`;
         brokerCard.classList.toggle("online", okB);
@@ -432,7 +515,8 @@
         brokerStatus.className = okB ? "st online" : "st offline";
 
         const prod = flow.producer || {};
-        const cons = flow.consumer || {};
+        const cons1 = flow.consumer || {};
+        const cons2 = flow.consumer2 || {};
         const qm = flow.broker && flow.broker.metrics ? flow.broker.metrics : {};
 
         qDepth.textContent = fmtNum(qm.MessageCount);
@@ -443,12 +527,18 @@
         const fetchedAt = flow.fetchedAt || new Date().toISOString();
         const dt = prev ? (Date.parse(fetchedAt) - Date.parse(prev.fetchedAt || fetchedAt)) / 1000 : null;
         const rSent = prev ? rate(prod.sent, prev.prodSent, dt) : null;
-        const rAck = prev ? rate(qm.MessagesAcknowledged, prev.acked, dt) : null;
+        const rC1 = prev ? rate(cons1.received, prev.c1, dt) : null;
+        const rC2 = prev ? rate(cons2.received, prev.c2, dt) : null;
         rateP2B.textContent = `${rSent == null ? "-" : rSent.toFixed(1)} msg/s`;
-        rateB2C.textContent = `${rAck == null ? "-" : rAck.toFixed(1)} msg/s`;
+        rateB2C1.textContent = `${rC1 == null ? "-" : rC1.toFixed(1)} msg/s`;
+        rateB2C2.textContent = `${rC2 == null ? "-" : rC2.toFixed(1)} msg/s`;
 
         lastRates.sent = rSent == null ? 0 : rSent;
-        lastRates.ack = rAck == null ? 0 : rAck;
+        lastRates.c1 = rC1 == null ? 0 : rC1;
+        lastRates.c2 = rC2 == null ? 0 : rC2;
+
+        consumerName1.textContent = (flow.consumers && flow.consumers[0] && flow.consumers[0].name) ? flow.consumers[0].name : "Consumer 1";
+        consumerName2.textContent = (flow.consumers && flow.consumers[1] && flow.consumers[1].name) ? flow.consumers[1].name : "Consumer 2";
 
         statusLine.textContent = `queue=${flow.queue} · depth=${fmtNum(qm.MessageCount)}`;
         stQueue.textContent = String(flow.queue || "-");
@@ -456,10 +546,14 @@
         stFetched.textContent = String(fetchedAt);
         renderEvents(pickLast(flow));
 
-        prev = { fetchedAt, prodSent: prod.sent, acked: qm.MessagesAcknowledged };
+        prev = { fetchedAt, prodSent: prod.sent, c1: cons1.received, c2: cons2.received };
+
+        layoutPaths();
       }
 
       (async () => {
+        layoutPaths();
+        window.addEventListener("resize", () => layoutPaths());
         await tick();
         setInterval(tick, 2000);
       })();
