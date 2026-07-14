@@ -2,6 +2,7 @@ package com.demo.legacy.consumer.jms;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
+import javax.inject.Named;
 import javax.jms.ConnectionFactory;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
@@ -21,6 +22,7 @@ public class JmsConnectionFactoryProducer {
 
   @Produces
   @ApplicationScoped
+  @Named("connectionFactory")
   public ConnectionFactory connectionFactory() {
     return new ActiveMQConnectionFactory(url, username, password);
   }
