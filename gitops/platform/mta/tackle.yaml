@@ -1,0 +1,14 @@
+apiVersion: tackle.konveyor.io/v1alpha1
+kind: Tackle
+metadata:
+  name: mta
+  namespace: openshift-mta
+  annotations:
+    argocd.argoproj.io/sync-wave: "50"
+spec:
+  rwx_supported: "false"
+  rwo_storage_class: gp3-csi
+  hub_bucket_volume_size: "2.5Gi"
+  maven_data_volume_size: "2.5Gi"
+  feature_auth_required: "true"
+
