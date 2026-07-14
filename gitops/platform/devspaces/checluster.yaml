@@ -14,6 +14,7 @@ spec:
     defaultPlugins:
       - editor: che-incubator/che-code/latest
         plugins:
-          - redhat/vscode-kaoto/latest
-          - redhat/fabric8-analytics/latest
+          # Pin versions (some environments don't resolve "latest" reliably).
+          - redhat/vscode-kaoto/2.11.0
+          - redhat/fabric8-analytics/1.0.0
 
