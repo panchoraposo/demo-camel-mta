@@ -207,6 +207,9 @@
             <g id="packetsP2B"></g>
             <g id="packetsB2C1"></g>
             <g id="packetsB2C2"></g>
+
+            <!-- Overlay wire (above packets) so it's always visible -->
+            <path id="p2bLineOverlay" d="M 260 300 L 420 300" stroke="url(#g1)" stroke-width="2.8" fill="none" opacity="0.85"/>
           </svg>
 
           <div class="node endpoint" id="producerNode" style="left:20%;top:50%">
@@ -327,6 +330,7 @@
       const svg = document.getElementById("svg");
 
       const p2bPath = document.getElementById("p2bLine");
+      const p2bOverlayPath = document.getElementById("p2bLineOverlay");
       const b2c1Path = document.getElementById("b2c1Line");
       const b2c2Path = document.getElementById("b2c2Line");
       const packetsP2BGroup = document.getElementById("packetsP2B");
@@ -462,7 +466,9 @@
         const c1In = screenToSvg(r, anchorPoint(consumerNode1, "left"));
         const c2In = screenToSvg(r, anchorPoint(consumerNode2, "left"));
 
-        setPathD(p2bPath, curve(pOut, bIn));
+        const p2bD = curve(pOut, bIn);
+        setPathD(p2bPath, p2bD);
+        setPathD(p2bOverlayPath, p2bD);
         setPathD(b2c1Path, curve(bOut, c1In));
         setPathD(b2c2Path, curve(bOut, c2In));
       }
