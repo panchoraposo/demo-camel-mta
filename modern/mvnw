@@ -291,5 +291,9 @@ verbose "Found extracted Maven distribution directory: $actualDistributionDir"
 printf %s\\n "$distributionUrl" >"$TMP_DOWNLOAD_DIR/$actualDistributionDir/mvnw.url"
 mv -- "$TMP_DOWNLOAD_DIR/$actualDistributionDir" "$MAVEN_HOME" || [ -d "$MAVEN_HOME" ] || die "fail to move MAVEN_HOME"
 
+# When extracting with `jar`, executable bits may not be preserved.
+# Ensure the Maven launcher scripts are executable.
+chmod +x "$MAVEN_HOME/bin/$MVN_CMD" "$MAVEN_HOME/bin/mvn" 2>/dev/null || :
+
 clean || :
 exec_maven "$@"
