@@ -53,12 +53,12 @@
         height:100%;
         display:flex;flex-direction:column;
       }
-      .stage{position:relative;width:100%;height:clamp(300px,38vh,420px);flex:0 0 auto}
+      .stage{position:relative;width:100%;height:clamp(340px,48vh,560px);flex:0 0 auto}
       .stageEvents{
-        flex:0 0 auto; height:260px;
+        flex:0 0 auto; height:240px;
         border-top:1px solid rgba(255,255,255,.06);
         background:linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.18));
-        padding:14px 16px 16px;
+        padding:12px 14px 14px;
         display:flex;flex-direction:column;gap:10px;
       }
       .stageEvents h3{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
@@ -112,11 +112,13 @@
         letter-spacing:.6px;color:var(--muted)}
       .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
       table{width:100%;border-collapse:separate;border-spacing:0 6px;table-layout:fixed}
-      td{font-size:11px;color:var(--muted);padding:7px 10px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08);overflow:hidden}
+      td{font-size:11px;color:var(--muted);padding:6px 10px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08);overflow:hidden}
       td:first-child{width:70px}
       tr td:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
       tr td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
       .evt{white-space:nowrap;text-overflow:ellipsis;line-height:1.2;max-height:none;overflow:hidden;padding-right:6px}
+
+      .micro{margin-top:6px;font-size:11px;color:var(--muted);font-weight:900}
 
       .statusgrid{
         display:grid;gap:8px;margin-top:10px;
@@ -189,7 +191,8 @@
             <div class="ic" style="border-color:rgba(56,189,248,.35)">📤</div>
             <div class="lbl">Producer</div>
             <div class="sub">sent messages</div>
-            <div class="badge" id="rateP2B">- msg/s</div>
+            <div class="badge" id="prodTotal">-</div>
+            <div class="micro mono" id="prodRate">- /s</div>
           </div>
 
           <div class="node" id="brokerNode" style="left:50%;top:50%">
@@ -214,14 +217,16 @@
             <div class="ic" style="border-color:rgba(61,220,132,.35)">📥</div>
             <div class="lbl" id="consumerName1">Consumer 1</div>
             <div class="sub">received messages</div>
-            <div class="badge" id="rateB2C1">- msg/s</div>
+            <div class="badge" id="cons1Total">-</div>
+            <div class="micro mono" id="cons1Rate">- /s</div>
           </div>
 
           <div class="node endpoint" id="consumerNode2" style="left:80%;top:64%">
             <div class="ic" style="border-color:rgba(61,220,132,.35)">📥</div>
             <div class="lbl" id="consumerName2">Consumer 2</div>
             <div class="sub">received messages</div>
-            <div class="badge" id="rateB2C2">- msg/s</div>
+            <div class="badge" id="cons2Total">-</div>
+            <div class="micro mono" id="cons2Rate">- /s</div>
           </div>
         </div>
         <div class="stageEvents">
@@ -280,9 +285,12 @@
       const stConsumer1 = document.getElementById("stConsumer1");
       const stConsumer2 = document.getElementById("stConsumer2");
 
-      const rateP2B = document.getElementById("rateP2B");
-      const rateB2C1 = document.getElementById("rateB2C1");
-      const rateB2C2 = document.getElementById("rateB2C2");
+      const prodTotal = document.getElementById("prodTotal");
+      const prodRate = document.getElementById("prodRate");
+      const cons1Total = document.getElementById("cons1Total");
+      const cons1Rate = document.getElementById("cons1Rate");
+      const cons2Total = document.getElementById("cons2Total");
+      const cons2Rate = document.getElementById("cons2Rate");
 
       const qDepth = document.getElementById("qDepth");
       const qConsumers = document.getElementById("qConsumers");
@@ -534,9 +542,14 @@
         const rSent = prev ? rate(prod.sent, prev.prodSent, dt) : null;
         const rC1 = prev ? rate(cons1.received, prev.c1, dt) : null;
         const rC2 = prev ? rate(cons2.received, prev.c2, dt) : null;
-        rateP2B.textContent = `${rSent == null ? "-" : rSent.toFixed(1)} msg/s`;
-        rateB2C1.textContent = `${rC1 == null ? "-" : rC1.toFixed(1)} msg/s`;
-        rateB2C2.textContent = `${rC2 == null ? "-" : rC2.toFixed(1)} msg/s`;
+
+        prodTotal.textContent = `${fmtNum(prod.sent)} sent`;
+        cons1Total.textContent = `${fmtNum(cons1.received)} recv`;
+        cons2Total.textContent = `${fmtNum(cons2.received)} recv`;
+
+        prodRate.textContent = `${rSent == null ? "-" : rSent.toFixed(1)} /s`;
+        cons1Rate.textContent = `${rC1 == null ? "-" : rC1.toFixed(1)} /s`;
+        cons2Rate.textContent = `${rC2 == null ? "-" : rC2.toFixed(1)} /s`;
 
         lastRates.sent = rSent == null ? 0 : rSent;
         lastRates.c1 = rC1 == null ? 0 : rC1;
