@@ -9,7 +9,7 @@ services:
       AMQ_USER: admin
       AMQ_PASSWORD: admin
     healthcheck:
-      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:8161/ || exit 1" ]
+      test: ["CMD", "bash", "-lc", "echo > /dev/tcp/localhost/8161" ]
       interval: 5s
       timeout: 3s
       retries: 30
