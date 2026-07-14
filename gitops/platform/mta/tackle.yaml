@@ -12,3 +12,15 @@ spec:
   maven_data_volume_size: "2.5Gi"
   feature_auth_required: "false"
 
+  # Analyzer tasks can be memory intensive (OOMKilled). Increase task pod resources.
+  # Keep requests==limits for predictable scheduling.
+  analyzer_container_requests_cpu: "2"
+  analyzer_container_limits_cpu: "2"
+  analyzer_container_requests_memory: "4Gi"
+  analyzer_container_limits_memory: "4Gi"
+
+  provider_java_container_requests_cpu: "2"
+  provider_java_container_limits_cpu: "2"
+  provider_java_container_requests_memory: "4Gi"
+  provider_java_container_limits_memory: "4Gi"
+
