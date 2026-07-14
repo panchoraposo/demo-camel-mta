@@ -76,6 +76,8 @@
         stroke-linecap:round;
         opacity:0.95;
         filter:drop-shadow(0 0 10px rgba(56,189,248,.28));
+        /* Solid line so it doesn't get lost behind packets. */
+        stroke-dasharray:none !important;
       }
       #b2c1Line,#b2c2Line{stroke-linecap:round}
 
@@ -422,15 +424,25 @@
         return { x, y };
       }
 
-      function screenToSvg(pt) {
+      function screenToSvg(stageRect, pt) {
+        // Primary: use the SVG CTM.
         const ctm = svg.getScreenCTM();
-        if (!ctm) return { x: 0, y: 0 };
-        const inv = ctm.inverse();
-        const p = svg.createSVGPoint();
-        p.x = pt.x;
-        p.y = pt.y;
-        const r = p.matrixTransform(inv);
-        return { x: r.x, y: r.y };
+        if (ctm) {
+          const inv = ctm.inverse();
+          const p = svg.createSVGPoint();
+          p.x = pt.x;
+          p.y = pt.y;
+          const r = p.matrixTransform(inv);
+          return { x: r.x, y: r.y };
+        }
+        // Fallback: map screen coords into the viewBox (some browser/privacy modes may return null CTM).
+        const vb = svg.viewBox.baseVal;
+        const sx = vb.width / stageRect.width;
+        const sy = vb.height / stageRect.height;
+        return {
+          x: (pt.x - stageRect.left) * sx,
+          y: (pt.y - stageRect.top) * sy,
+        };
       }
 
       function curve(a, b) {
@@ -444,11 +456,11 @@
         const r = stage.getBoundingClientRect();
         if (!r.width || !r.height) return;
 
-        const pOut = screenToSvg(anchorPoint(producerNode, "right"));
-        const bIn = screenToSvg(anchorPoint(brokerNode, "left"));
-        const bOut = screenToSvg(anchorPoint(brokerNode, "right"));
-        const c1In = screenToSvg(anchorPoint(consumerNode1, "left"));
-        const c2In = screenToSvg(anchorPoint(consumerNode2, "left"));
+        const pOut = screenToSvg(r, anchorPoint(producerNode, "right"));
+        const bIn = screenToSvg(r, anchorPoint(brokerNode, "left"));
+        const bOut = screenToSvg(r, anchorPoint(brokerNode, "right"));
+        const c1In = screenToSvg(r, anchorPoint(consumerNode1, "left"));
+        const c2In = screenToSvg(r, anchorPoint(consumerNode2, "left"));
 
         setPathD(p2bPath, curve(pOut, bIn));
         setPathD(b2c1Path, curve(bOut, c1In));
