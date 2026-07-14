@@ -1,7 +1,10 @@
 FROM registry.access.redhat.com/ubi9/openjdk-17:latest AS build
 
+USER 0
 WORKDIR /workspace
 COPY modern modern
+RUN chown -R 1001:0 /workspace
+USER 1001
 
 RUN ./modern/mvnw -f modern/pom.xml -pl apps/event-consumer -am package -DskipTests
 
