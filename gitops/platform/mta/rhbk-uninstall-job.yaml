@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhbk-uninstall
+  namespace: openshift-mta
+  annotations:
+    argocd.argoproj.io/sync-wave: "60"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: demo-camel-mta-rhbk-uninstall-cluster-admin
+  annotations:
+    argocd.argoproj.io/sync-wave: "60"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: rhbk-uninstall
+    namespace: openshift-mta
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhbk-uninstall
+  namespace: openshift-mta
+  annotations:
+    argocd.argoproj.io/sync-wave: "61"
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      serviceAccountName: rhbk-uninstall
+      restartPolicy: OnFailure
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command:
+            - /bin/bash
+            - -lc
+            - |
+              set -euo pipefail
+
+              NS="openshift-mta"
+
+              echo "Uninstalling RHBK/Keycloak operator artifacts (best-effort) in ${NS}..."
+
+              # Delete Subscription if present (name observed on some clusters).
+              oc -n "${NS}" delete subscription rhbk-operator-stable-v26.6-redhat-operators-openshift-marketplace --ignore-not-found=true
+              oc -n "${NS}" delete subscription rhbk-operator --ignore-not-found=true
+
+              # Delete any RHBK operator CSVs in that namespace.
+              oc -n "${NS}" get csv -o name | rg -i 'rhbk|keycloak' | xargs -r oc -n "${NS}" delete --ignore-not-found=true
+
+              # Delete the operator deployment if left behind.
+              oc -n "${NS}" delete deploy -l name=rhbk-operator --ignore-not-found=true || true
+              oc -n "${NS}" delete deploy -l app.kubernetes.io/name=rhbk-operator --ignore-not-found=true || true
+
+              # If the operator already created Keycloak resources, remove them too.
+              oc -n "${NS}" delete keycloak --all --ignore-not-found=true || true
+              oc -n "${NS}" delete keycloakrealm --all --ignore-not-found=true || true
+              oc -n "${NS}" delete keycloakclient --all --ignore-not-found=true || true
+              oc -n "${NS}" delete keycloakuser --all --ignore-not-found=true || true
+
+              echo "Done."
+

@@ -10,5 +10,5 @@ spec:
   rwo_storage_class: gp3-csi
   hub_bucket_volume_size: "2.5Gi"
   maven_data_volume_size: "2.5Gi"
-  feature_auth_required: "true"
+  feature_auth_required: "false"
 

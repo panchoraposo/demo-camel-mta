@@ -6,14 +6,14 @@ COPY modern modern
 RUN chown -R 1001:0 /workspace
 USER 1001
 
-# Build native inside the Mandrel builder image.
-RUN ./modern/mvnw -f modern/pom.xml -pl apps/kaoto-consumer -am package -DskipTests -Dquarkus.native.enabled=true -Dquarkus.package.jar.enabled=false -Dquarkus.native.additional-build-args=--initialize-at-run-time=org.jgroups.conf.XmlConfigurator,--initialize-at-run-time=org.jgroups.util.Util,--initialize-at-run-time=org.jgroups.logging.LogFactory
+# Build JVM (fast-jar) using the Maven Wrapper.
+RUN ./modern/mvnw -f modern/pom.xml -pl apps/kaoto-consumer -am package -DskipTests
 
-FROM registry.access.redhat.com/ubi9/ubi:latest
-WORKDIR /work
-COPY --from=build /workspace/modern/apps/kaoto-consumer/target/*-runner /work/application
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:latest
+WORKDIR /deployments
+COPY --from=build /workspace/modern/apps/kaoto-consumer/target/quarkus-app/ /deployments/quarkus-app/
 
 EXPOSE 8083
-USER 1001
-ENTRYPOINT ["/work/application","-Dquarkus.http.host=0.0.0.0"]
+USER 185
+ENTRYPOINT ["java","-jar","/deployments/quarkus-app/quarkus-run.jar"]
 
