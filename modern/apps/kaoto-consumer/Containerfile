@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/quarkus/mandrel-25-rhel9:latest AS build
+FROM registry.access.redhat.com/ubi9/openjdk-17:latest AS build
 
 USER 0
 WORKDIR /workspace
