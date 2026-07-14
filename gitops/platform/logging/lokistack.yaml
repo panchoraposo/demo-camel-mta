@@ -7,6 +7,10 @@ metadata:
     argocd.argoproj.io/sync-wave: "30"
 spec:
   size: 1x.demo
+  limits:
+    global:
+      retention:
+        days: 1
   storage:
     schemas:
       - version: v13

@@ -26,8 +26,10 @@ spec:
     - name: default-logstore
       inputRefs:
         - application
-        - infrastructure
-        - audit
       outputRefs:
         - lokistack-out
+      filter:
+        kubernetes:
+          namespaces:
+            - demo-camel-mta
 
