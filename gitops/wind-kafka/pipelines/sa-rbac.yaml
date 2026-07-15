@@ -9,7 +9,7 @@ metadata:
   name: wind-kafka-pipeline
 rules:
   - apiGroups: ["build.openshift.io"]
-    resources: ["buildconfigs", "builds"]
+    resources: ["buildconfigs", "buildconfigs/instantiate", "builds"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
