@@ -4,6 +4,8 @@ kind: Kustomization
 resources:
   - namespaces.yaml
   - amq-broker/subscription.yaml
+  - amq-streams/subscription.yaml
+  - pipelines/subscription.yaml
   - logging/loki-subscription.yaml
   - logging/cluster-logging-subscription.yaml
   - observability/subscription.yaml

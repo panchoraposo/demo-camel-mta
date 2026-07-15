@@ -32,3 +32,15 @@ kind: Namespace
 metadata:
   name: openshift-mta
 
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-pipelines
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wind-kafka
+

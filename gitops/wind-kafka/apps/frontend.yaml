@@ -1,0 +1,77 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: wind-kafka-frontend
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/panchoraposo/demo-camel-mta.git
+      ref: main
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: wind-kafka/apps/frontend/Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: wind-kafka-frontend:latest
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wind-kafka-frontend
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"wind-kafka-frontend:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wind-kafka-frontend
+  template:
+    metadata:
+      labels:
+        app: wind-kafka-frontend
+    spec:
+      containers:
+        - name: app
+          image: ' '
+          imagePullPolicy: Always
+          env:
+            - name: DEMO_CONSUMER_BASE_URL
+              value: http://wind-kafka-consumer:8084
+            - name: DEMO_CONSUMER_STREAMS
+              value: "20"
+          ports:
+            - containerPort: 8082
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wind-kafka-frontend
+spec:
+  selector:
+    app: wind-kafka-frontend
+  ports:
+    - name: http
+      port: 8082
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: wind-kafka-frontend
+spec:
+  to:
+    kind: Service
+    name: wind-kafka-frontend
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+

@@ -1,0 +1,24 @@
+#
+# Kaoto-friendly Camel route (YAML DSL).
+#
+# Demo intent:
+# - Consume wind telemetry events from Kafka
+# - Keep in-memory state for snapshot + SSE stream
+#
+- route:
+    id: wind-consumer-kafka
+    from:
+      uri: "kafka:{{demo.kafka.topic}}?groupId={{demo.kafka.group-id}}&autoOffsetReset=earliest"
+      steps:
+        - convertBodyTo:
+            type: "java.lang.String"
+        - to:
+            uri: "bean:windConsumerState?method=onMessage"
+        - choice:
+            when:
+              - simple: "{{demo.enhanced.logging.enabled}}"
+                steps:
+                  - log:
+                      loggingLevel: INFO
+                      message: "Consumed topic={{demo.kafka.topic}} body=${body}"
+

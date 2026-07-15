@@ -1,0 +1,42 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: wind-kafka-producer-build
+spec:
+  tasks:
+    - name: start-build
+      taskRef:
+        name: oc
+      params:
+        - name: script
+          value: |
+            oc -n wind-kafka start-build wind-kafka-producer --wait --follow
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: wind-kafka-consumer-build
+spec:
+  tasks:
+    - name: start-build
+      taskRef:
+        name: oc
+      params:
+        - name: script
+          value: |
+            oc -n wind-kafka start-build wind-kafka-consumer --wait --follow
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: wind-kafka-frontend-build
+spec:
+  tasks:
+    - name: start-build
+      taskRef:
+        name: oc
+      params:
+        - name: script
+          value: |
+            oc -n wind-kafka start-build wind-kafka-frontend --wait --follow
+

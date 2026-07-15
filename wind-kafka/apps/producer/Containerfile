@@ -1,0 +1,19 @@
+FROM registry.access.redhat.com/ubi9/openjdk-17:latest AS build
+
+USER 0
+WORKDIR /workspace
+COPY modern modern
+COPY wind-kafka wind-kafka
+RUN chown -R 1001:0 /workspace
+USER 1001
+
+RUN ./modern/mvnw -f wind-kafka/pom.xml -pl apps/producer -am package -DskipTests
+
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:latest
+WORKDIR /deployments
+COPY --from=build /workspace/wind-kafka/apps/producer/target/quarkus-app/ /deployments/quarkus-app/
+
+EXPOSE 8080
+USER 185
+ENTRYPOINT ["java","-jar","/deployments/quarkus-app/quarkus-run.jar"]
+

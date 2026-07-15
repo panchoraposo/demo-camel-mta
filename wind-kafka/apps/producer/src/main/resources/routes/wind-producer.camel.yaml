@@ -1,0 +1,24 @@
+#
+# Kaoto-friendly Camel route (YAML DSL).
+#
+# Demo intent:
+# - Periodically generate wind telemetry events
+# - Publish to Kafka topic wind.events
+#
+- route:
+    id: wind-producer-kafka
+    from:
+      uri: "timer:wind?period={{demo.producer.period-ms}}"
+      steps:
+        - choice:
+            when:
+              - simple: "{{demo.producer.timer-enabled}}"
+                steps:
+                  - to:
+                      uri: "bean:windProducerState?method=nextEventJson"
+                  - to:
+                      uri: "kafka:{{demo.kafka.topic}}"
+                  - log:
+                      loggingLevel: INFO
+                      message: "Produced wind event topic={{demo.kafka.topic}} body=${body}"
+

@@ -1,0 +1,82 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: wind-kafka-consumer
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/panchoraposo/demo-camel-mta.git
+      ref: main
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: wind-kafka/apps/consumer/Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: wind-kafka-consumer:latest
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wind-kafka-consumer
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"wind-kafka-consumer:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'
+spec:
+  replicas: 20
+  selector:
+    matchLabels:
+      app: wind-kafka-consumer
+  template:
+    metadata:
+      labels:
+        app: wind-kafka-consumer
+    spec:
+      containers:
+        - name: app
+          image: ' '
+          imagePullPolicy: Always
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: wind-kafka-kafka-bootstrap:9092
+            - name: DEMO_KAFKA_TOPIC
+              value: wind.events
+            - name: DEMO_KAFKA_GROUP_ID
+              value: wind-consumer
+            - name: DEMO_CONSUMER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: DEMO_ENHANCED_LOGGING_ENABLED
+              value: "false"
+          ports:
+            - containerPort: 8084
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wind-kafka-consumer
+spec:
+  selector:
+    app: wind-kafka-consumer
+  ports:
+    - name: http
+      port: 8084
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: wind-kafka-consumer
+spec:
+  to:
+    kind: Service
+    name: wind-kafka-consumer
+  port:
+    targetPort: http
+

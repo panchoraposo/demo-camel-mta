@@ -1,0 +1,24 @@
+apiVersion: console.openshift.io/v1
+kind: ConsoleLink
+metadata:
+  name: wind-kafka-demo
+spec:
+  location: ApplicationMenu
+  text: Wind Kafka Demo
+  applicationMenu:
+    section: Demos
+    text: Wind Kafka Demo
+  href: https://wind-kafka-frontend-wind-kafka.apps.cluster-4tqtj.4tqtj.sandbox481.opentlc.com
+---
+apiVersion: console.openshift.io/v1
+kind: ConsoleLink
+metadata:
+  name: wind-kafka-kafka-ui
+spec:
+  location: ApplicationMenu
+  text: Wind Kafka Kafka UI
+  applicationMenu:
+    section: Demos
+    text: Wind Kafka (Kafka UI)
+  href: https://kafka-ui-wind-kafka.apps.cluster-4tqtj.4tqtj.sandbox481.opentlc.com
+

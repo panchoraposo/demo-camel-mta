@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wind → Kafka → Camel → Motion</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="title">
+          <div class="kicker">Event-driven demo</div>
+          <h1>Wind → Kafka → Camel → Motion</h1>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Consumed</div>
+            <div class="value" id="consumed">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Watts</div>
+            <div class="value" id="watts">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Speed</div>
+            <div class="value" id="speed">0%</div>
+          </div>
+          <div class="stat">
+            <div class="label">Mode</div>
+            <div class="value" id="mode">connecting</div>
+          </div>
+          <div class="stat">
+            <div class="label">Consumers seen</div>
+            <div class="value" id="consumers">0</div>
+          </div>
+        </div>
+      </header>
+
+      <main class="stage">
+        <div class="scene">
+          <div class="sky"></div>
+          <div class="ground"></div>
+
+          <div class="turbine-field" id="turbine-field"></div>
+
+          <div class="track">
+            <div class="track-line"></div>
+            <div class="car" id="car">
+              <div class="car-body"></div>
+              <div class="wheel w1"></div>
+              <div class="wheel w2"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <div class="hint">
+          The turbine spins faster as the consumer receives more power events.
+        </div>
+      </footer>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+

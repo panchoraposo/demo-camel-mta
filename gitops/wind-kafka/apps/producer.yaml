@@ -1,0 +1,82 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: wind-kafka-producer
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/panchoraposo/demo-camel-mta.git
+      ref: main
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: wind-kafka/apps/producer/Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: wind-kafka-producer:latest
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wind-kafka-producer
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"wind-kafka-producer:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wind-kafka-producer
+  template:
+    metadata:
+      labels:
+        app: wind-kafka-producer
+    spec:
+      containers:
+        - name: app
+          image: ' '
+          imagePullPolicy: Always
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: wind-kafka-kafka-bootstrap:9092
+            - name: DEMO_KAFKA_TOPIC
+              value: wind.events
+            - name: DEMO_PRODUCER_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: DEMO_TIMER_ENABLED
+              value: "true"
+            - name: DEMO_PERIOD_MS
+              value: "250"
+          ports:
+            - containerPort: 8080
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wind-kafka-producer
+spec:
+  selector:
+    app: wind-kafka-producer
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: wind-kafka-producer
+spec:
+  to:
+    kind: Service
+    name: wind-kafka-producer
+  port:
+    targetPort: http
+
