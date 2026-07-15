@@ -24,6 +24,14 @@ body {
     var(--bg);
 }
 
+/* Prevent the turbine field from collapsing (visual aid). */
+.turbine-field:empty::after{
+  content:"";
+  display:block;
+  width:1px;
+  height:1px;
+}
+
 .app { min-height: 100vh; display: flex; flex-direction: column; }
 .header {
   display: flex;
