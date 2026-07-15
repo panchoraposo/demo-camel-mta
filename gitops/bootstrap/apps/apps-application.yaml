@@ -19,6 +19,25 @@ spec:
       kind: Deployment
       jqPathExpressions:
         - .spec.template.spec.containers[].image
+    # Allow demo scripts to scale replicas without Argo CD self-heal reverting it.
+    - group: apps
+      kind: Deployment
+      name: modern-queue-producer
+      namespace: demo-camel-mta
+      jsonPointers:
+        - /spec/replicas
+    - group: apps
+      kind: Deployment
+      name: modern-event-consumer
+      namespace: demo-camel-mta
+      jsonPointers:
+        - /spec/replicas
+    - group: apps
+      kind: Deployment
+      name: modern-kaoto-consumer
+      namespace: demo-camel-mta
+      jsonPointers:
+        - /spec/replicas
   syncPolicy:
     automated:
       prune: true
