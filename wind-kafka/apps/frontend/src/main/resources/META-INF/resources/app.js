@@ -21,6 +21,8 @@ let sources = [];
 let lastTick = performance.now();
 let posPx = 0;
 let dir = 1;
+let aliveCountLast = 0;
+let lastSnapshotAtMs = 0;
 
 // Track unique consumers observed over SSE/polling (useful when consumer is scaled on OpenShift).
 const consumers = new Map(); // id -> { lastSeenMs, lastSnapshot }
@@ -40,6 +42,7 @@ function updateUi() {
   elSpeed.textContent = `${Math.round((state.speedFactor ?? 0) * 100)}%`;
   const now = performance.now();
   const aliveCount = Array.from(consumers.values()).filter((v) => now - v.lastSeenMs < 30000).length;
+  aliveCountLast = aliveCount;
   elConsumers.textContent = String(aliveCount);
 }
 
@@ -109,6 +112,9 @@ function layoutTurbines() {
 }
 
 function applyMotion(dtMs) {
+  const now = performance.now();
+  const stale = lastSnapshotAtMs > 0 && now - lastSnapshotAtMs > 5000;
+
   const w = scene.clientWidth;
   // Make the visible track longer before looping.
   const leftPad = w * 0.08;
@@ -116,7 +122,8 @@ function applyMotion(dtMs) {
   const trackLen = Math.max(240, w - leftPad - rightPad - 20);
 
   // Car speed based on speedFactor (0..1). Convert to px/sec.
-  const pxPerSec = 25 + (state.speedFactor ?? 0) * 360;
+  const shouldStop = aliveCountLast <= 0 || stale;
+  const pxPerSec = shouldStop ? 0 : 25 + (state.speedFactor ?? 0) * 360;
   posPx += dir * (pxPerSec * dtMs) / 1000;
 
   // Ping-pong instead of looping to feel like a longer run.
@@ -131,9 +138,9 @@ function applyMotion(dtMs) {
   car.style.transform = `translateX(${posPx}px)`;
 
   // Turbines spin rate (global intensity derived from latest snapshot)
-  const rpm = 10 + (state.speedFactor ?? 0) * 190;
+  const rpm = shouldStop ? 0 : 10 + (state.speedFactor ?? 0) * 190;
   const degPerMs = (rpm * 360) / 60000;
-  const rot = ((performance.now() * degPerMs) % 360);
+  const rot = ((now * degPerMs) % 360);
   for (const [, t] of turbineByConsumer.entries()) {
     t.blades.forEach((b, i) => {
       const base = i * 120;
@@ -144,6 +151,7 @@ function applyMotion(dtMs) {
 
 function onSnapshot(snap) {
   state = snap;
+  lastSnapshotAtMs = performance.now();
   updateUi();
 
   const id = snap?.consumer ?? "consumer";

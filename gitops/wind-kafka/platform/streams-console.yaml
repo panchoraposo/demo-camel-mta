@@ -1,0 +1,15 @@
+apiVersion: console.streamshub.github.com/v1alpha1
+kind: Console
+metadata:
+  name: wind-kafka-console
+spec:
+  # Hostname to access the console (operator creates the Route)
+  hostname: wind-kafka-console-wind-kafka.apps.cluster-4tqtj.4tqtj.sandbox481.opentlc.com
+  kafkaClusters:
+    - name: wind-kafka
+      namespace: wind-kafka
+      listener: plain
+      properties:
+        values: []
+        valuesFrom: []
+

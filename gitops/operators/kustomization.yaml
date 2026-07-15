@@ -5,6 +5,7 @@ resources:
   - namespaces.yaml
   - amq-broker/subscription.yaml
   - amq-streams/subscription.yaml
+  - amq-streams-console/subscription.yaml
   - pipelines/subscription.yaml
   - logging/loki-subscription.yaml
   - logging/cluster-logging-subscription.yaml

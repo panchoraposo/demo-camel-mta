@@ -13,12 +13,12 @@ spec:
 apiVersion: console.openshift.io/v1
 kind: ConsoleLink
 metadata:
-  name: wind-kafka-kafka-ui
+  name: wind-kafka-console
 spec:
   location: ApplicationMenu
-  text: Wind Kafka Kafka UI
+  text: Wind Kafka Kafka Console
   applicationMenu:
     section: Demos
-    text: Wind Kafka (Kafka UI)
-  href: https://kafka-ui-wind-kafka.apps.cluster-4tqtj.4tqtj.sandbox481.opentlc.com
+    text: Wind Kafka (Kafka Console)
+  href: https://wind-kafka-console-wind-kafka.apps.cluster-4tqtj.4tqtj.sandbox481.opentlc.com
 

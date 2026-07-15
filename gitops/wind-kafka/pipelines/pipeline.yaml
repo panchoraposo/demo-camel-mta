@@ -11,6 +11,24 @@ spec:
         - name: script
           value: |
             oc -n wind-kafka start-build wind-kafka-producer --wait --follow
+    - name: rollout
+      runAfter: ["start-build"]
+      taskRef:
+        name: oc
+      params:
+        - name: script
+          value: |
+            oc -n wind-kafka rollout restart deploy/wind-kafka-producer
+            oc -n wind-kafka rollout status deploy/wind-kafka-producer --timeout=10m
+    - name: smoke
+      runAfter: ["rollout"]
+      taskRef:
+        name: oc
+      params:
+        - name: script
+          value: |
+            host=$(oc -n wind-kafka get route wind-kafka-producer -o jsonpath='{.spec.host}')
+            curl -ksSf "https://${host}/q/health" >/dev/null
 ---
 apiVersion: tekton.dev/v1
 kind: Pipeline
@@ -25,6 +43,25 @@ spec:
         - name: script
           value: |
             oc -n wind-kafka start-build wind-kafka-consumer --wait --follow
+    - name: rollout
+      runAfter: ["start-build"]
+      taskRef:
+        name: oc
+      params:
+        - name: script
+          value: |
+            oc -n wind-kafka rollout restart deploy/wind-kafka-consumer
+            oc -n wind-kafka rollout status deploy/wind-kafka-consumer --timeout=10m
+    - name: smoke
+      runAfter: ["rollout"]
+      taskRef:
+        name: oc
+      params:
+        - name: script
+          value: |
+            host=$(oc -n wind-kafka get route wind-kafka-consumer -o jsonpath='{.spec.host}')
+            curl -ksSf "https://${host}/q/health" >/dev/null
+            curl -ksSf "https://${host}/api/snapshot" >/dev/null
 ---
 apiVersion: tekton.dev/v1
 kind: Pipeline
@@ -39,4 +76,23 @@ spec:
         - name: script
           value: |
             oc -n wind-kafka start-build wind-kafka-frontend --wait --follow
+    - name: rollout
+      runAfter: ["start-build"]
+      taskRef:
+        name: oc
+      params:
+        - name: script
+          value: |
+            oc -n wind-kafka rollout restart deploy/wind-kafka-frontend
+            oc -n wind-kafka rollout status deploy/wind-kafka-frontend --timeout=10m
+    - name: smoke
+      runAfter: ["rollout"]
+      taskRef:
+        name: oc
+      params:
+        - name: script
+          value: |
+            host=$(oc -n wind-kafka get route wind-kafka-frontend -o jsonpath='{.spec.host}')
+            curl -ksSf "https://${host}/" >/dev/null
+            curl -ksSf "https://${host}/api/config" >/dev/null
 

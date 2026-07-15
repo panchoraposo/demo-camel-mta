@@ -5,6 +5,6 @@ namespace: wind-kafka
 
 resources:
   - kafka.yaml
-  - kafka-ui.yaml
+  - streams-console.yaml
   - consolelinks.yaml
 
