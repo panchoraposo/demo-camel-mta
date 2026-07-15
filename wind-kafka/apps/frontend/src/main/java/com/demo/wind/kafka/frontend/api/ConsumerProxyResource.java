@@ -1,9 +1,10 @@
 package com.demo.wind.kafka.frontend.api;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ThreadLocalRandom;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -21,20 +22,30 @@ public class ConsumerProxyResource {
   @ConfigProperty(name = "demo.consumer.base-url")
   String consumerBaseUrl;
 
-  static final HttpClient CLIENT = HttpClient.newBuilder().build();
-
   @GET
   @Path("/snapshot")
   @Produces(MediaType.APPLICATION_JSON)
   @Blocking
   public Response snapshot() {
     String base = consumerBaseUrl == null ? "" : consumerBaseUrl.replaceAll("/+$", "");
-    String url = base + "/api/snapshot";
+    // Force new TCP connections so kube-proxy can balance across consumer pods.
+    String url = base + "/api/snapshot?c=" + ThreadLocalRandom.current().nextInt(1_000_000);
 
     try {
-      HttpRequest req = HttpRequest.newBuilder(URI.create(url)).GET().build();
-      HttpResponse<String> resp = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-      return Response.status(resp.statusCode()).type(MediaType.APPLICATION_JSON).entity(resp.body()).build();
+      HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+      conn.setRequestMethod("GET");
+      conn.setRequestProperty("Accept", MediaType.APPLICATION_JSON);
+      conn.setRequestProperty("Connection", "close");
+      conn.setConnectTimeout(2000);
+      conn.setReadTimeout(5000);
+
+      int code = conn.getResponseCode();
+      InputStream is = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+      byte[] bytes = is == null ? new byte[0] : is.readAllBytes();
+      conn.disconnect();
+
+      String body = new String(bytes, StandardCharsets.UTF_8);
+      return Response.status(code).type(MediaType.APPLICATION_JSON).entity(body).build();
     } catch (Exception e) {
       return Response.status(503)
           .type(MediaType.APPLICATION_JSON)
