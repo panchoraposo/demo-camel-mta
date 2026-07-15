@@ -52,7 +52,7 @@ public class ConsumerRoutes extends RouteBuilder {
           state.onEvent(eventId, body);
 
           long received = state.snapshot().received();
-          LOG.infov("CONSUME consumer={0} queue={1} type={2} eventId={3} receivedTotal={4}",
+          LOG.infov("consumer={0} queue={1} type={2} eventId={3} receivedTotal={4}",
               consumerName, queueName, eventType, eventId, received);
         })
         .end();

@@ -57,7 +57,7 @@ public class ConsumerState {
       while (last.size() > 20) last.removeLast();
     }
 
-    LOG.infov("CONSUME consumer={0} queue={1} type={2} eventId={3} receivedTotal={4}",
+    LOG.infov("consumer={0} queue={1} type={2} eventId={3} receivedTotal={4}",
         consumerName, queueName, type, id, received.get());
   }
 
