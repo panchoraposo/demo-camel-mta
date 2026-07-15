@@ -27,7 +27,7 @@ metadata:
   annotations:
     image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"wind-kafka-consumer:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'
 spec:
-  replicas: 20
+  replicas: 1
   selector:
     matchLabels:
       app: wind-kafka-consumer

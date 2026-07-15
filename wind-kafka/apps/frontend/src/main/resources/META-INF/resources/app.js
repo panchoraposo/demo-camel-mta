@@ -25,6 +25,12 @@ let posPx = 0;
 let dir = 1;
 let aliveCountLast = 0;
 let lastSnapshotAtMs = 0;
+let uiConsumedMonotonic = 0;
+let uiWattsEma = 0;
+let uiSpeedEma = 0;
+let lastUiUpdateAtMs = 0;
+let lastLayoutAtMs = 0;
+let lastLayoutKey = "";
 
 // Track unique consumers observed over SSE/polling (useful when consumer is scaled on OpenShift).
 const consumers = new Map(); // id -> { lastSeenMs, lastSnapshot }
@@ -39,13 +45,50 @@ function clamp(v, min, max) {
 }
 
 function updateUi() {
-  elConsumed.textContent = String(state.consumed ?? 0);
-  elWatts.textContent = String(state.last?.watts ?? state.totalWatts ?? 0);
-  elSpeed.textContent = `${Math.round((state.speedFactor ?? 0) * 100)}%`;
   const now = performance.now();
-  const aliveCount = Array.from(consumers.values()).filter((v) => now - v.lastSeenMs < 30000).length;
-  aliveCountLast = aliveCount;
-  elConsumers.textContent = String(aliveCount);
+  const alive = Array.from(consumers.entries())
+    .filter(([, v]) => now - v.lastSeenMs < 30000)
+    .map(([, v]) => v);
+
+  aliveCountLast = alive.length;
+  elConsumers.textContent = String(aliveCountLast);
+
+  // Aggregate across pods to avoid "jumping back to 0" when we hit a different replica.
+  // Use per-consumer max to keep the total monotonic for the session.
+  let sumConsumed = 0;
+  let sumWatts = 0;
+  let sumSpeed = 0;
+  let speedN = 0;
+
+  for (const v of alive) {
+    const snap = v.lastSnapshot || {};
+    const consumed = Number(snap.consumed || 0);
+    v.maxConsumed = Math.max(Number(v.maxConsumed || 0), consumed);
+    sumConsumed += v.maxConsumed;
+
+    const watts = Number((snap.last && snap.last.watts) || snap.totalWatts || 0);
+    sumWatts += watts;
+
+    const sf = Number(snap.speedFactor || 0);
+    sumSpeed += sf;
+    speedN += 1;
+  }
+
+  uiConsumedMonotonic = Math.max(uiConsumedMonotonic, sumConsumed);
+  const rawWatts = sumWatts;
+  const rawSpeed = speedN ? sumSpeed / speedN : 0;
+
+  // Smooth numbers to keep movement fluid.
+  uiWattsEma = uiWattsEma === 0 ? rawWatts : uiWattsEma * 0.85 + rawWatts * 0.15;
+  uiSpeedEma = uiSpeedEma === 0 ? rawSpeed : uiSpeedEma * 0.85 + rawSpeed * 0.15;
+
+  state.consumed = uiConsumedMonotonic;
+  state.totalWatts = uiWattsEma;
+  state.speedFactor = uiSpeedEma;
+
+  elConsumed.textContent = String(Math.round(uiConsumedMonotonic));
+  elWatts.textContent = String(Math.round(uiWattsEma));
+  elSpeed.textContent = `${Math.round(uiSpeedEma * 100)}%`;
 }
 
 function mkTurbineEl(sizeClass) {
@@ -154,11 +197,30 @@ function applyMotion(dtMs) {
 function onSnapshot(snap) {
   state = snap;
   lastSnapshotAtMs = performance.now();
-  updateUi();
-
   const id = snap?.consumer ?? "consumer";
-  consumers.set(id, { lastSeenMs: performance.now(), lastSnapshot: snap });
-  layoutTurbines();
+  const prev = consumers.get(id) || {};
+  consumers.set(id, { ...prev, lastSeenMs: performance.now(), lastSnapshot: snap });
+
+  // Throttle UI + layout work (polling fanout can be noisy).
+  const now = performance.now();
+  if (now - lastUiUpdateAtMs >= 120) {
+    lastUiUpdateAtMs = now;
+    updateUi();
+  }
+
+  // Layout only when the alive set changes, and at most once per second.
+  if (now - lastLayoutAtMs >= 1000) {
+    const aliveIds = Array.from(consumers.entries())
+      .filter(([, v]) => now - v.lastSeenMs < 30000)
+      .map(([cid]) => cid)
+      .sort();
+    const key = aliveIds.join("|");
+    if (key !== lastLayoutKey) {
+      lastLayoutKey = key;
+      lastLayoutAtMs = now;
+      layoutTurbines();
+    }
+  }
 }
 
 async function getConfig() {
@@ -243,7 +305,8 @@ async function startPollingOne(url, idx) {
     } catch {
       // ignore transient errors
     }
-    await new Promise((r) => setTimeout(r, 250));
+    // Lower request rate to reduce UI "jank" when fanout is high.
+    await new Promise((r) => setTimeout(r, 500));
   }
 }
 
