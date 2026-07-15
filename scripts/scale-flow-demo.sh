@@ -6,6 +6,8 @@ PRODUCER_DEPLOY="${PRODUCER_DEPLOY:-modern-queue-producer}"
 CONSUMER1_DEPLOY="${CONSUMER1_DEPLOY:-modern-event-consumer}"
 CONSUMER2_DEPLOY="${CONSUMER2_DEPLOY:-modern-kaoto-consumer}"
 
+EXPECTED_CONTEXT="${EXPECTED_CONTEXT:-camel}"
+
 TARGET_PRODUCER="${TARGET_PRODUCER:-5}"
 TARGET_CONSUMERS="${TARGET_CONSUMERS:-3}"
 DURATION_SECONDS="${DURATION_SECONDS:-120}"
@@ -27,6 +29,7 @@ Usage:
   bash scripts/scale-flow-demo.sh
 
 Optional env vars:
+  EXPECTED_CONTEXT=camel
   NS=demo-camel-mta
   TARGET_PRODUCER=8
   TARGET_CONSUMERS=5
@@ -47,6 +50,17 @@ need() {
 }
 
 need oc
+
+CTX="$(oc config current-context 2>/dev/null || true)"
+if [[ -z "$CTX" ]]; then
+  echo "ERROR: unable to determine current oc context." >&2
+  exit 1
+fi
+if [[ -n "${EXPECTED_CONTEXT}" && "$CTX" != "${EXPECTED_CONTEXT}" ]]; then
+  echo "ERROR: refusing to scale because current context is '$CTX' but EXPECTED_CONTEXT is '$EXPECTED_CONTEXT'." >&2
+  echo "Tip: set EXPECTED_CONTEXT='$CTX' or run: oc config use-context $EXPECTED_CONTEXT" >&2
+  exit 1
+fi
 
 get_replicas() {
   local deploy="$1"
