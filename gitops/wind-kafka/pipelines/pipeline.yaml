@@ -10,7 +10,24 @@ spec:
       params:
         - name: script
           value: |
-            oc -n wind-kafka start-build wind-kafka-producer --wait --follow
+            set -euo pipefail
+            build="$(oc -n wind-kafka start-build wind-kafka-producer -o name)"
+            echo "Started ${build}"
+            for i in $(seq 1 180); do
+              phase="$(oc -n wind-kafka get "${build}" -o jsonpath='{.status.phase}')"
+              echo "phase=${phase}"
+              if [[ "${phase}" == "Complete" ]]; then
+                exit 0
+              fi
+              if [[ "${phase}" == "Failed" || "${phase}" == "Error" || "${phase}" == "Cancelled" ]]; then
+                oc -n wind-kafka logs "${build}" || true
+                exit 1
+              fi
+              sleep 5
+            done
+            echo "Timed out waiting for ${build}"
+            oc -n wind-kafka logs "${build}" || true
+            exit 1
     - name: rollout
       runAfter: ["start-build"]
       taskRef:
@@ -42,7 +59,24 @@ spec:
       params:
         - name: script
           value: |
-            oc -n wind-kafka start-build wind-kafka-consumer --wait --follow
+            set -euo pipefail
+            build="$(oc -n wind-kafka start-build wind-kafka-consumer -o name)"
+            echo "Started ${build}"
+            for i in $(seq 1 180); do
+              phase="$(oc -n wind-kafka get "${build}" -o jsonpath='{.status.phase}')"
+              echo "phase=${phase}"
+              if [[ "${phase}" == "Complete" ]]; then
+                exit 0
+              fi
+              if [[ "${phase}" == "Failed" || "${phase}" == "Error" || "${phase}" == "Cancelled" ]]; then
+                oc -n wind-kafka logs "${build}" || true
+                exit 1
+              fi
+              sleep 5
+            done
+            echo "Timed out waiting for ${build}"
+            oc -n wind-kafka logs "${build}" || true
+            exit 1
     - name: rollout
       runAfter: ["start-build"]
       taskRef:
@@ -75,7 +109,24 @@ spec:
       params:
         - name: script
           value: |
-            oc -n wind-kafka start-build wind-kafka-frontend --wait --follow
+            set -euo pipefail
+            build="$(oc -n wind-kafka start-build wind-kafka-frontend -o name)"
+            echo "Started ${build}"
+            for i in $(seq 1 180); do
+              phase="$(oc -n wind-kafka get "${build}" -o jsonpath='{.status.phase}')"
+              echo "phase=${phase}"
+              if [[ "${phase}" == "Complete" ]]; then
+                exit 0
+              fi
+              if [[ "${phase}" == "Failed" || "${phase}" == "Error" || "${phase}" == "Cancelled" ]]; then
+                oc -n wind-kafka logs "${build}" || true
+                exit 1
+              fi
+              sleep 5
+            done
+            echo "Timed out waiting for ${build}"
+            oc -n wind-kafka logs "${build}" || true
+            exit 1
     - name: rollout
       runAfter: ["start-build"]
       taskRef:
