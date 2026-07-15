@@ -42,7 +42,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: DEMO_CONSUMER_BASE_URL
-              value: http://wind-kafka-consumer:8084
+              value: https://wind-kafka-consumer-wind-kafka.apps.cluster-4tqtj.4tqtj.sandbox481.opentlc.com
             - name: DEMO_CONSUMER_STREAMS
               value: "1"
           ports:

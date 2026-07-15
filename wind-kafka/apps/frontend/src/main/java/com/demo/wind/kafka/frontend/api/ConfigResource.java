@@ -19,7 +19,9 @@ public class ConfigResource {
 
   @GET
   public Config config() {
-    return new Config(consumerBaseUrl, consumerStreams, "/api/consumer/snapshot", null);
+    String base = consumerBaseUrl == null ? null : consumerBaseUrl.replaceAll("/+$", "");
+    String streamUrl = (base == null || base.isBlank()) ? null : base + "/api/stream";
+    return new Config(consumerBaseUrl, consumerStreams, "/api/consumer/snapshot", streamUrl);
   }
 
   public record Config(String consumerBaseUrl, int consumerStreams, String snapshotUrl, String streamUrl) {
