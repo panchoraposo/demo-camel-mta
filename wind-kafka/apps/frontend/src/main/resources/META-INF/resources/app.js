@@ -25,7 +25,7 @@ let posPx = 0;
 let dir = 1;
 let aliveCountLast = 0;
 let lastSnapshotAtMs = 0;
-let uiConsumedMonotonic = 0;
+let uiConsumedTotal = 0;
 let uiWattsEma = 0;
 let uiSpeedEma = 0;
 let lastUiUpdateAtMs = 0;
@@ -53,8 +53,8 @@ function updateUi() {
   aliveCountLast = alive.length;
   elConsumers.textContent = String(aliveCountLast);
 
-  // Aggregate across pods to avoid "jumping back to 0" when we hit a different replica.
-  // Use per-consumer max to keep the total monotonic for the session.
+  // Aggregate across pods without "jumping":
+  // keep a per-consumer delta accumulator since first time we observed it.
   let sumConsumed = 0;
   let sumWatts = 0;
   let sumSpeed = 0;
@@ -62,9 +62,7 @@ function updateUi() {
 
   for (const v of alive) {
     const snap = v.lastSnapshot || {};
-    const consumed = Number(snap.consumed || 0);
-    v.maxConsumed = Math.max(Number(v.maxConsumed || 0), consumed);
-    sumConsumed += v.maxConsumed;
+    sumConsumed += Number(v.deltaConsumedTotal || 0);
 
     const watts = Number((snap.last && snap.last.watts) || snap.totalWatts || 0);
     sumWatts += watts;
@@ -74,7 +72,7 @@ function updateUi() {
     speedN += 1;
   }
 
-  uiConsumedMonotonic = Math.max(uiConsumedMonotonic, sumConsumed);
+  uiConsumedTotal = Math.max(uiConsumedTotal, sumConsumed);
   const rawWatts = sumWatts;
   const rawSpeed = speedN ? sumSpeed / speedN : 0;
 
@@ -82,11 +80,11 @@ function updateUi() {
   uiWattsEma = uiWattsEma === 0 ? rawWatts : uiWattsEma * 0.85 + rawWatts * 0.15;
   uiSpeedEma = uiSpeedEma === 0 ? rawSpeed : uiSpeedEma * 0.85 + rawSpeed * 0.15;
 
-  state.consumed = uiConsumedMonotonic;
+  state.consumed = uiConsumedTotal;
   state.totalWatts = uiWattsEma;
   state.speedFactor = uiSpeedEma;
 
-  elConsumed.textContent = String(Math.round(uiConsumedMonotonic));
+  elConsumed.textContent = String(Math.round(uiConsumedTotal));
   elWatts.textContent = String(Math.round(uiWattsEma));
   elSpeed.textContent = `${Math.round(uiSpeedEma * 100)}%`;
 }
@@ -199,7 +197,20 @@ function onSnapshot(snap) {
   lastSnapshotAtMs = performance.now();
   const id = snap?.consumer ?? "consumer";
   const prev = consumers.get(id) || {};
-  consumers.set(id, { ...prev, lastSeenMs: performance.now(), lastSnapshot: snap });
+
+  // Update per-consumer delta accumulator.
+  const consumedNow = Number(snap?.consumed || 0);
+  const lastSeenConsumed = Number(prev.lastSeenConsumed ?? consumedNow);
+  const delta = Math.max(0, consumedNow - lastSeenConsumed);
+  const deltaTotal = Number(prev.deltaConsumedTotal || 0) + delta;
+
+  consumers.set(id, {
+    ...prev,
+    lastSeenMs: performance.now(),
+    lastSnapshot: snap,
+    lastSeenConsumed: consumedNow,
+    deltaConsumedTotal: deltaTotal,
+  });
 
   // Throttle UI + layout work (polling fanout can be noisy).
   const now = performance.now();
