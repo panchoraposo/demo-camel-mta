@@ -5,4 +5,7 @@ metadata:
 spec:
   plugins:
     - logging-view-plugin
+    # Present by default on this cluster; keep them so Argo stays Synced.
+    - monitoring-plugin
+    - networking-console-plugin
 
