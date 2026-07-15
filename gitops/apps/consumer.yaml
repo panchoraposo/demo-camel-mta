@@ -49,6 +49,8 @@ spec:
               value: admin
             - name: DEMO_BROKER_QUEUE
               value: demo.events
+            - name: DEMO_CONSUMER_NAME
+              value: event-consumer
           ports:
             - containerPort: 8081
               name: http

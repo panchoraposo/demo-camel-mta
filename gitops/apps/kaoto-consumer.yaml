@@ -51,6 +51,8 @@ spec:
               value: demo.events
             - name: DEMO_ENHANCED_LOGGING_ENABLED
               value: "false"
+            - name: DEMO_CONSUMER_NAME
+              value: kaoto-consumer
           ports:
             - containerPort: 8083
               name: http

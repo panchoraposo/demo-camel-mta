@@ -12,9 +12,20 @@ import java.util.concurrent.atomic.AtomicLong;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Named;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
+
 @ApplicationScoped
 @Named("consumerState")
 public class ConsumerState {
+
+  private static final Logger LOG = Logger.getLogger(ConsumerState.class);
+
+  @ConfigProperty(name = "demo.consumer.name", defaultValue = "kaoto-consumer")
+  String consumerName;
+
+  @ConfigProperty(name = "demo.broker.queue", defaultValue = "demo.events")
+  String queueName;
 
   private final AtomicLong received = new AtomicLong(0);
   private final AtomicLong duplicates = new AtomicLong(0);
@@ -30,6 +41,7 @@ public class ConsumerState {
    */
   public void onMessage(String body) {
     String id = extractEventId(body);
+    String type = extractField(body, "type");
     boolean dup;
     synchronized (seenIds) {
       dup = (id != null && !id.isBlank()) && !seenIds.add(id);
@@ -44,6 +56,9 @@ public class ConsumerState {
       last.addFirst(new LastItem(Instant.now().toString(), id, body));
       while (last.size() > 20) last.removeLast();
     }
+
+    LOG.infov("CONSUME consumer={0} queue={1} type={2} eventId={3} receivedTotal={4}",
+        consumerName, queueName, type, id, received.get());
   }
 
   public Snapshot snapshot() {
@@ -55,9 +70,14 @@ public class ConsumerState {
   }
 
   private static String extractEventId(String body) {
+    return extractField(body, "eventId");
+  }
+
+  private static String extractField(String body, String field) {
     if (body == null) return null;
-    // Cheap extraction for demo payloads: {"eventId":"..."}
-    int i = body.indexOf("\"eventId\"");
+    // Cheap extraction for demo payloads: {"field":"..."}
+    String key = "\"" + field + "\"";
+    int i = body.indexOf(key);
     if (i < 0) return null;
     int colon = body.indexOf(':', i);
     if (colon < 0) return null;
