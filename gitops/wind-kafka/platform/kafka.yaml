@@ -43,7 +43,7 @@ metadata:
   labels:
     strimzi.io/cluster: wind-kafka
 spec:
-  partitions: 6
+  partitions: 24
   replicas: 3
   config:
     retention.ms: 3600000

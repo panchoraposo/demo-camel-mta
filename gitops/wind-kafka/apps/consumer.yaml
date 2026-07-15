@@ -79,4 +79,7 @@ spec:
     name: wind-kafka-consumer
   port:
     targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
 
