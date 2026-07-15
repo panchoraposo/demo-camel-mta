@@ -19,10 +19,10 @@ public class ConfigResource {
 
   @GET
   public Config config() {
-    return new Config(consumerBaseUrl, consumerStreams);
+    return new Config(consumerBaseUrl, consumerStreams, "/api/consumer/snapshot", null);
   }
 
-  public record Config(String consumerBaseUrl, int consumerStreams) {
+  public record Config(String consumerBaseUrl, int consumerStreams, String snapshotUrl, String streamUrl) {
   }
 }
 

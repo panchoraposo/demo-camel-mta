@@ -17,6 +17,8 @@ const turbineField = document.getElementById("turbine-field");
 
 let consumerBaseUrl = null;
 let consumerStreams = 1;
+let snapshotUrl = null;
+let streamUrl = null;
 let sources = [];
 let lastTick = performance.now();
 let posPx = 0;
@@ -165,10 +167,13 @@ async function getConfig() {
   return await res.json();
 }
 
+function stopPolling() {
+  polling = false;
+}
+
 function connectSseFanout() {
-  if (!consumerBaseUrl) return;
-  const base = consumerBaseUrl.replace(/\/$/, "");
-  const url = `${base}/api/stream`;
+  if (!streamUrl) return;
+  const url = streamUrl;
 
   // Close old sources
   sources.forEach((s) => {
@@ -215,27 +220,23 @@ function connectSseFanout() {
       // If everything fails, fallback to polling
       if (failed >= n) {
         setMode("polling");
-        startPolling();
+        startPollingFanout();
       }
     };
   }
 
   if (sources.length === 0) {
     setMode("polling");
-    startPolling();
+    startPollingFanout();
     return;
   }
 }
 
 let polling = false;
-async function startPolling() {
-  if (polling || !consumerBaseUrl) return;
-  polling = true;
-  const url = `${consumerBaseUrl.replace(/\/$/, "")}/api/snapshot`;
-
+async function startPollingOne(url, idx) {
   while (polling) {
     try {
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch(`${url}?c=${idx}-${Math.random().toString(16).slice(2)}`, { cache: "no-store" });
       if (res.ok) {
         onSnapshot(await res.json());
       }
@@ -243,6 +244,16 @@ async function startPolling() {
       // ignore transient errors
     }
     await new Promise((r) => setTimeout(r, 250));
+  }
+}
+
+function startPollingFanout() {
+  if (polling || !snapshotUrl) return;
+  polling = true;
+
+  const n = Math.max(1, Math.min(24, Number(consumerStreams || 1)));
+  for (let i = 0; i < n; i++) {
+    startPollingOne(snapshotUrl, i);
   }
 }
 
@@ -258,7 +269,16 @@ async function main() {
   const cfg = await getConfig();
   consumerBaseUrl = cfg.consumerBaseUrl;
   consumerStreams = cfg.consumerStreams ?? 1;
-  connectSseFanout();
+  snapshotUrl = cfg.snapshotUrl || (consumerBaseUrl ? `${consumerBaseUrl.replace(/\/$/, "")}/api/snapshot` : null);
+  streamUrl = cfg.streamUrl || (consumerBaseUrl ? `${consumerBaseUrl.replace(/\/$/, "")}/api/stream` : null);
+
+  // Prefer SSE if available; otherwise use polling fanout (works behind frontend proxy).
+  if (streamUrl) {
+    connectSseFanout();
+  } else {
+    setMode("polling");
+    startPollingFanout();
+  }
   requestAnimationFrame(animate);
 }
 
