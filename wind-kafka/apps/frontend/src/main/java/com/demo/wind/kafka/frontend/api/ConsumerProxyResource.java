@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 
 import jakarta.ws.rs.GET;
@@ -14,6 +15,9 @@ import jakarta.ws.rs.core.Response;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.common.annotation.Blocking;
 
 @Path("/api/consumer")
@@ -21,6 +25,34 @@ public class ConsumerProxyResource {
 
   @ConfigProperty(name = "demo.consumer.base-url")
   String consumerBaseUrl;
+
+  private String fetchSnapshotJson() {
+    String base = consumerBaseUrl == null ? "" : consumerBaseUrl.replaceAll("/+$", "");
+    String url = base + "/api/snapshot?c=" + ThreadLocalRandom.current().nextInt(1_000_000);
+
+    try {
+      HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+      conn.setRequestMethod("GET");
+      conn.setRequestProperty("Accept", MediaType.APPLICATION_JSON);
+      conn.setRequestProperty("Connection", "close");
+      conn.setConnectTimeout(2000);
+      conn.setReadTimeout(5000);
+
+      int code = conn.getResponseCode();
+      if (code >= 400) {
+        conn.disconnect();
+        return null;
+      }
+
+      InputStream is = conn.getInputStream();
+      byte[] bytes = is == null ? new byte[0] : is.readAllBytes();
+      conn.disconnect();
+
+      return new String(bytes, StandardCharsets.UTF_8);
+    } catch (Exception e) {
+      return null;
+    }
+  }
 
   @GET
   @Path("/snapshot")
@@ -52,6 +84,20 @@ public class ConsumerProxyResource {
           .entity("{\"error\":\"consumer proxy failed\"}")
           .build();
     }
+  }
+
+  @GET
+  @Path("/stream")
+  @Produces(MediaType.SERVER_SENT_EVENTS)
+  public Multi<String> stream() {
+    // Same-origin SSE endpoint for the browser; internally we poll snapshot with new TCP
+    // connections so kube-proxy can balance across consumer pods.
+    return Multi.createFrom().ticks().every(Duration.ofMillis(500))
+        .onOverflow().drop()
+        .onItem().transformToUniAndConcatenate(ignored ->
+            Uni.createFrom().item(this::fetchSnapshotJson)
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool()))
+        .select().where(s -> s != null && !s.isBlank());
   }
 }
 

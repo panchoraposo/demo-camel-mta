@@ -36,6 +36,20 @@ let lastLayoutKey = "";
 const consumers = new Map(); // id -> { lastSeenMs, lastSnapshot }
 const turbineByConsumer = new Map(); // id -> { root, blades }
 
+function isStale(now) {
+  return lastSnapshotAtMs > 0 && now - lastSnapshotAtMs > 8000;
+}
+
+function aliveWindowMs(now) {
+  // If we haven't seen any snapshots recently, converge to 0 quickly so the UI doesn't get stuck.
+  return isStale(now) ? 5000 : 30000;
+}
+
+function computeAliveEntries(now) {
+  const windowMs = aliveWindowMs(now);
+  return Array.from(consumers.entries()).filter(([, v]) => now - v.lastSeenMs < windowMs);
+}
+
 function setMode(m) {
   elMode.textContent = m;
 }
@@ -46,9 +60,7 @@ function clamp(v, min, max) {
 
 function updateUi() {
   const now = performance.now();
-  const alive = Array.from(consumers.entries())
-    .filter(([, v]) => now - v.lastSeenMs < 30000)
-    .map(([, v]) => v);
+  const alive = computeAliveEntries(now).map(([, v]) => v);
 
   aliveCountLast = alive.length;
   elConsumers.textContent = String(aliveCountLast);
@@ -114,9 +126,7 @@ function mkTurbineEl(sizeClass) {
 function layoutTurbines() {
   // Use only "recently seen" consumers to avoid accumulating forever.
   const now = performance.now();
-  const alive = Array.from(consumers.entries())
-    .filter(([, v]) => now - v.lastSeenMs < 30000)
-    .map(([id]) => id);
+  const alive = computeAliveEntries(now).map(([id]) => id);
 
   // Deterministic order so layout doesn't jump too much
   alive.sort();
@@ -156,7 +166,7 @@ function layoutTurbines() {
 
 function applyMotion(dtMs) {
   const now = performance.now();
-  const stale = lastSnapshotAtMs > 0 && now - lastSnapshotAtMs > 5000;
+  const stale = isStale(now);
 
   const w = scene.clientWidth;
   // Make the visible track longer before looping.
@@ -221,10 +231,7 @@ function onSnapshot(snap) {
 
   // Layout only when the alive set changes, and at most once per second.
   if (now - lastLayoutAtMs >= 1000) {
-    const aliveIds = Array.from(consumers.entries())
-      .filter(([, v]) => now - v.lastSeenMs < 30000)
-      .map(([cid]) => cid)
-      .sort();
+    const aliveIds = computeAliveEntries(now).map(([cid]) => cid).sort();
     const key = aliveIds.join("|");
     if (key !== lastLayoutKey) {
       lastLayoutKey = key;
@@ -331,6 +338,27 @@ function startPollingFanout() {
   }
 }
 
+function startUiHeartbeat() {
+  // Keep the UI in sync even when no snapshots arrive (e.g., consumers scaled to 0).
+  setInterval(() => {
+    const now = performance.now();
+
+    // Force periodic UI refresh.
+    updateUi();
+
+    // Re-layout when alive set changes (or when stale clears everything).
+    if (now - lastLayoutAtMs >= 1000) {
+      const aliveIds = computeAliveEntries(now).map(([cid]) => cid).sort();
+      const key = aliveIds.join("|");
+      if (key !== lastLayoutKey) {
+        lastLayoutKey = key;
+        lastLayoutAtMs = now;
+        layoutTurbines();
+      }
+    }
+  }, 500);
+}
+
 function animate(now) {
   const dt = clamp(now - lastTick, 0, 80);
   lastTick = now;
@@ -353,6 +381,7 @@ async function main() {
     setMode("polling");
     startPollingFanout();
   }
+  startUiHeartbeat();
   requestAnimationFrame(animate);
 }
 
