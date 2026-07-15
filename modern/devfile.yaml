@@ -1,6 +1,9 @@
 schemaVersion: 2.2.2
 metadata:
   name: demo-camel-mta-modern
+events:
+  postStart:
+    - install-jbang
 components:
   - name: tools
     container:
@@ -8,6 +11,19 @@ components:
       memoryLimit: 2Gi
       mountSources: true
       command: ["sleep", "infinity"]
+      env:
+        # Dev Spaces runs in its own namespace, so we must use the broker Service FQDN.
+        - name: DEMO_BROKER_URL
+          value: tcp://amq-broker-hdls-svc.demo-camel-mta.svc:61616
+        - name: DEMO_BROKER_USERNAME
+          value: admin
+        - name: DEMO_BROKER_PASSWORD
+          value: admin
+        - name: DEMO_BROKER_QUEUE
+          value: demo.events
+        # Avoid interactive prompt during quarkus:dev.
+        - name: QUARKUS_ANALYTICS_DISABLED
+          value: "true"
       volumeMounts:
         - name: m2
           path: /home/user/.m2
@@ -15,11 +31,29 @@ components:
     volume:
       size: 5Gi
 commands:
+  - id: install-jbang
+    exec:
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: >-
+        bash -lc 'set -euo pipefail;
+        if command -v jbang >/dev/null 2>&1; then
+          echo "jbang already installed: $(jbang version 2>/dev/null | head -n 1 || true)";
+          exit 0;
+        fi;
+        curl -Ls https://sh.jbang.dev | bash;
+        if command -v jbang >/dev/null 2>&1; then
+          echo "jbang installed: $(jbang version 2>/dev/null | head -n 1 || true)";
+        else
+          echo "jbang install finished, but jbang is not on PATH yet. Open a new terminal.";
+        fi'
+      group:
+        kind: run
   - id: build
     exec:
       component: tools
       workingDir: ${PROJECT_SOURCE}
-      commandLine: mvn -f modern/pom.xml -DskipTests package
+      commandLine: bash -lc 'sh modern/mvnw -f modern/pom.xml -DskipTests package'
       group:
         kind: build
         isDefault: true
@@ -27,35 +61,35 @@ commands:
     exec:
       component: tools
       workingDir: ${PROJECT_SOURCE}
-      commandLine: git status
+      commandLine: bash -lc 'git status'
       group:
         kind: run
   - id: git-push
     exec:
       component: tools
       workingDir: ${PROJECT_SOURCE}
-      commandLine: git push
+      commandLine: bash -lc 'git push'
       group:
         kind: run
   - id: dev-kaoto-consumer
     exec:
       component: tools
       workingDir: ${PROJECT_SOURCE}
-      commandLine: mvn -f modern/pom.xml -pl apps/kaoto-consumer quarkus:dev
+      commandLine: bash -lc 'sh modern/mvnw -f modern/pom.xml -pl apps/kaoto-consumer quarkus:dev'
       group:
         kind: run
   - id: dev-consumer
     exec:
       component: tools
       workingDir: ${PROJECT_SOURCE}
-      commandLine: mvn -f modern/pom.xml -pl apps/event-consumer quarkus:dev
+      commandLine: bash -lc 'sh modern/mvnw -f modern/pom.xml -pl apps/event-consumer quarkus:dev'
       group:
         kind: run
   - id: dev-producer
     exec:
       component: tools
       workingDir: ${PROJECT_SOURCE}
-      commandLine: mvn -f modern/pom.xml -pl apps/queue-producer quarkus:dev
+      commandLine: bash -lc 'sh modern/mvnw -f modern/pom.xml -pl apps/queue-producer quarkus:dev'
       group:
         kind: run
 

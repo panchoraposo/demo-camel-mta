@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mta-hub-ruleset-hotfix
+  namespace: openshift-mta
+  annotations:
+    # Run after Tackle is installed.
+    argocd.argoproj.io/sync-wave: "60"
+    # Run as a hook so it doesn't remain in Git.
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: hotfix
+          image: registry.access.redhat.com/ubi9/python-39:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -lc
+            - |
+              set -euo pipefail
+              python3 - <<'PY'
+              import os
+
+              root = "/buckets/.file"
+              sq = chr(39)
+              old = "matches(self::node(), " + sq + "*property*" + sq + ")"
+              new = "matches(self::node(), " + sq + ".*property.*" + sq + ")"
+
+              files = 0
+              repls = 0
+              for fn in os.listdir(root):
+                  p = os.path.join(root, fn)
+                  if not os.path.isfile(p):
+                      continue
+                  try:
+                      d = open(p, "r", encoding="utf-8", errors="ignore").read()
+                  except Exception:
+                      continue
+                  if old not in d:
+                      continue
+                  c = d.count(old)
+                  d2 = d.replace(old, new)
+                  if d2 != d:
+                      open(p, "w", encoding="utf-8").write(d2)
+                      files += 1
+                      repls += c
+
+              print(f"Replaced occurrences: {repls}")
+              print(f"Files changed: {files}")
+              PY
+          volumeMounts:
+            - name: hub-buckets
+              mountPath: /buckets
+      volumes:
+        - name: hub-buckets
+          persistentVolumeClaim:
+            claimName: mta-hub-bucket-volume-claim

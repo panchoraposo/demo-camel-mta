@@ -12,6 +12,13 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: demo-camel-mta
+  ignoreDifferences:
+    # OpenShift ImageStream triggers mutate Deployment container images to digests.
+    # Keep the app Synced by ignoring image field drift.
+    - group: apps
+      kind: Deployment
+      jqPathExpressions:
+        - .spec.template.spec.containers[].image
   syncPolicy:
     automated:
       prune: true

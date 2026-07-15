@@ -6,8 +6,16 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "40"
 spec:
+  managementState: Managed
   serviceAccount:
     name: logging-collector
+  inputs:
+    # Restrict collection to the demo namespace to keep the cluster lightweight.
+    - name: demo-applications
+      type: application
+      application:
+        includes:
+          - namespace: demo-camel-mta
   outputs:
     - name: lokistack-out
       type: lokiStack
@@ -20,16 +28,12 @@ spec:
             from: serviceAccount
       tls:
         ca:
-          configMapName: logging-loki-gateway-ca-bundle
+          configMapName: loki-gateway-ca-bundle
           key: service-ca.crt
   pipelines:
     - name: default-logstore
       inputRefs:
-        - application
+        - demo-applications
       outputRefs:
         - lokistack-out
-      filter:
-        kubernetes:
-          namespaces:
-            - demo-camel-mta
 
